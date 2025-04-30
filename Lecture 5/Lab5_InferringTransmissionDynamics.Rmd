@@ -22,7 +22,7 @@ You will need to change the "path" variable to the location of the files on your
 
 ```{r read in data}
 # set file path and read in the data
-path <- "C:/Users/megan/Documents/GitHub/seroanalytics_workshop/Lecture5" 
+path <- "C:/Users/megan/Documents/GitHub/seroanalytics_workshop/Lecture 5" 
 df <- read.csv(paste(path, "simulated_data.csv", sep="/"))
 
 # lets take a look at our dataset
