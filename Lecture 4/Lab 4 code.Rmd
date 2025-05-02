@@ -1,0 +1,292 @@
+---
+title: "Lab 4 code"
+output: html_document
+date: "2025-04-29"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Read in your data. Use the extra dataset for any questions you're not able to answer with your own data.
+Edit the code below to read in your data
+```{r reading_in_data}
+
+control_data <- read.csv("/Users/sarahlapidus/Documents/Malawi training docs/Data sets/simulated_control_long_training_data.csv")
+sample_data <- read.csv("/Users/sarahlapidus/Documents/Malawi training docs/Data sets/simulated_sample_wide_training_data.csv")
+
+#this converts sample_data from a wide to a long dataframe
+sample_long <- reshape(
+  sample_data,
+  varying = setdiff(names(sample_data), c("id", "age", "sex")),
+  v.names = "mfi",
+  timevar = "antigen",
+  times = setdiff(names(sample_data), c("id", "age", "sex")),
+  idvar = "id",
+  direction = "long"
+)
+rownames(sample_long) <- NULL
+
+
+```
+
+1. What positive and/or negative controls do you have available? What was the source of these controls?
+
+2. Using unexposed controls, adjust the code to do the following: 
+  a. Determine whether your negative controls are normally distributed on the natural or log scale. 
+  
+```{r histogram_neg_controls}
+
+    #restrict to negative controls
+    control_negs <- control_data[control_data$pos_neg=="negative",]
+
+    #check distributions of data - untransformed
+    neg_controls_natural_scale <- ggplot(control_negs, aes(x = mfi)) +
+      geom_histogram(bins = 10, color = "black", fill = "blue") +
+      facet_wrap(~ antigen, scales = "free", ncol = 4) +  # <- Set 5 columns per row
+      labs(
+        title = "Sample Distribution (Natural Scale)",
+        x = "Antigen MFI",
+        y = "Number of samples"
+      ) +
+      theme_minimal() +
+      theme(
+        strip.text = element_text(size = 10),  # Smaller font for facet labels
+        axis.text = element_text(size = 10),  # Smaller font for axis text
+        plot.title = element_text(size = 10)  # Smaller font for the plot title
+      )
+    neg_controls_natural_scale
+    
+    neg_controls_log_scale <- ggplot(control_negs, aes(x = log(mfi))) +
+      geom_histogram(bins = 10, color = "black", fill = "blue") +
+      facet_wrap(~ antigen, scales = "free", ncol = 4) +  # <- Set 5 columns per row
+      labs(
+        title = "Sample Distribution (Log Scale)",
+        x = "Log Antigen MFI",
+        y = "Number of samples"
+      ) +
+      theme_minimal() +
+      theme(
+        strip.text = element_text(size = 10),  # Smaller font for facet labels
+        axis.text = element_text(size = 10),  # Smaller font for axis text
+        plot.title = element_text(size = 10)  # Smaller font for the plot title
+      )
+    neg_controls_log_scale
+```
+  
+  
+  b. Based on the histograms above, chose an antigen with relatively normally distributed negative controls (untransformed or on log scale) for which it could be appropriate to use the mean + SD cutoff method.
+  Calculate a cutoff value as mean + 2 or 3 standard deviations. Use a natural or log transformation as appropriate. Adjust the code below. 
+  
+```{r mean_sd_cutoffs}
+
+  #for ZIKA on log scale. Adjust for your own file
+  ZIKA_control_negs <- control_negs[control_negs$antigen == "ZIKA","mfi"] #creates a vector of mfi values for ZIKA
+  ZIKA_control_negs_log <- log(ZIKA_control_negs)
+
+  #calculates cutoffs as mean +2 or 3 SDs. Since we did this on the log scale, we exponentiate results for cutoff on untransformed scale.
+  ZIKA_cutoff_2sd <- exp(mean(ZIKA_control_negs_log, na.rm = TRUE) + 2 * sd(ZIKA_control_negs_log, na.rm = TRUE))
+  ZIKA_cutoff_3sd <- exp(mean(ZIKA_control_negs_log, na.rm = TRUE) + 3 * sd(ZIKA_control_negs_log, na.rm = TRUE))
+  print(ZIKA_cutoff_2sd)
+  print(ZIKA_cutoff_3sd)
+
+
+```
+
+  c. How are your negative controls similar/different to negatives in your population?
+  
+  d. What is the seropositivity you calculated using negative controls as a cutoff?
+  
+```{r seropositivity_mean_sd}
+
+  ZIKA_control_negs <- control_negs[control_negs$antigen == "ZIKA","mfi"] #creates a vector of mfi values for ZIKA
+
+  #this code applies the cutoffs we found above to define people as seropositive or seronegative
+  #adjust with the names of your cutoffs
+  seropositivity_2sd <- ifelse(sample_data$ZIKA > ZIKA_cutoff_2sd, 1, 0) #1 is seropositive and 0 is seronegative 
+  seropositivity_3sd <- ifelse(sample_data$ZIKA > ZIKA_cutoff_3sd, 1, 0)
+  
+  #gives numbers of seropositive and negative 
+  table(seropositivity_2sd,useNA="always")
+  table(seropositivity_3sd,useNA="always")  
+  
+  #gives percent of people seropositive and negative
+  round(prop.table(table(seropositivity_2sd,useNA="always")),3)*100
+  round(prop.table(table(seropositivity_3sd,useNA="always")),3)*100
+
+```
+  
+3. Use the ROC method to adjust the code to do the following: 
+  a. Choose an MFI value and calculate sensitivity and specificity using positive and negative controls for an antigen. 
+  
+```{r sensitivity_specificity}
+
+cutoff <- 800 #adjust as you choose 
+
+#restricting just to controls for the antigen we're looking at. Adjust for your own antigen
+control_data_Zika <- control_data[which(control_data$antigen == "ZIKA"),1:3]
+
+# Create Seropos variable based on MFI cutoff
+seropositivity <- ifelse(control_data_Zika$mfi > cutoff, 1, 0)  
+
+#Since we have positive and negative controls, we know which samples are true positive and negatives (from pos_neg variable), compared to the samples we've assigned as positive or negative (based on seropositivity)
+table(control_data_Zika$pos_neg, seropositivity)
+
+#Calculate True Positives, True Negatives,  False Positives, and False Negatives
+#in your dataset, check if pos_neg values are coded as positive/negative, pos/neg, 1/0 etc, and change accordingly
+TP <- sum(seropositivity == 1 & control_data_Zika$pos_neg == "positive")  # True Positives
+TN <- sum(seropositivity == 0 & control_data_Zika$pos_neg == "negative")  # True Negatives
+FP <- sum(seropositivity == 1 & control_data_Zika$pos_neg == "negative")  # False Positives
+FN <- sum(seropositivity == 0 & control_data_Zika$pos_neg == "positive")  # False Negatives
+
+# Calculate Sensitivity and Specificity
+Sensitivity <- TP / (TP + FN)
+Specificity <- TN / (TN + FP)
+
+# Print results
+cat("True Positives:", TP, "\n")
+cat("True Negatives:", TN, "\n")
+cat("False Positives:", FP, "\n")
+cat("False Negatives:", FN, "\n")
+cat("Sensitivity:", round(Sensitivity, 3), "\n")
+cat("Specificity:", round(Specificity, 3), "\n")
+
+
+```
+
+  b. Plot an ROC curve for this antigen.
+
+
+```{r generate_roc_curve}
+
+# Generate the ROC curve
+#compute_roc is a function in the source file. Put in a vector of which controls are positive and negative, and a vector of mfi for each control, and it returns a dataframe with False Positive Rate (FPR) and True Positive Rate (TPR) at each cutoff
+source("/Users/sarahlapidus/Documents/Malawi training docs/Source file V1.R")
+roc_df <- compute_roc(control_data_Zika$pos_neg, control_data_Zika$mfi)
+
+#we can then plot the results of this function using ggplot to make an ROC curve
+ggplot(roc_df, aes(x = FPR, y = TPR)) +
+  geom_line(color = "blue") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
+  labs(
+    title = "ROC Curve",
+    x = "False Positive Rate (FPR)",
+    y = "True Positive Rate (TPR)"
+  ) +
+  theme_minimal()
+```
+
+  c. How will you determine the best place on the ROC curve to establish a cutoff? What does this mean for how you weigh possible misclassification?
+  
+  d. Using the ROC curve and the roc_df you generated above, what cutoff value did you use? You want to find a TPR closest to 1 and an FPR closest to 0.  Calculate seropositivity using this cutoff.
+  
+```{r apply_roc_cutoff}
+
+roc_cutoff <- 572.8970 ##put the cutoff you chose here
+seropositivity <- ifelse(sample_data$ZIKA > roc_cutoff, 1, 0) 
+ 
+#number of seropositive people 
+table(seropositivity,useNA="always")  
+  
+#percent of people seropositive and negative
+round(prop.table(table(seropositivity,useNA="always")),3)*100
+  
+```
+
+4. Optional: Plot your sample values and consider if they have a good distribution to fit a mixture model.
+
+```{r sample_histogram}
+
+  faceted_natural_scale <- ggplot(sample_long, aes(x = mfi)) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  facet_wrap(~ antigen, scales = "free", ncol = 5) +  # <- Set 5 columns per row
+  labs(
+    title = "",
+    x = "Antigen MFI",
+    y = "Number of samples"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10),  # Smaller font for facet labels
+    axis.text = element_text(size = 10),  # Smaller font for axis text
+    plot.title = element_text(size = 10)  # Smaller font for the plot title
+  )
+faceted_natural_scale
+
+#log scale
+faceted_log_scale <- ggplot(sample_long, aes(x = log(mfi))) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  facet_wrap(~ antigen, scales = "free", ncol = 5) +  # <- Set 5 columns per row
+  labs(
+    title = "",
+    x = "Log Antigen MFI",
+    y = "Number of samples"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10),  # Smaller font for facet labels
+    axis.text = element_text(size = 10),  # Smaller font for axis text
+    plot.title = element_text(size = 10)  # Smaller font for the plot title
+  )
+faceted_log_scale
+
+```
+
+5. Compare results of all the cutoff methods you have applied. 
+
+  a. For one antigen, adjust the code to plot the sample results with the different cutoffs indicated. Do this on the natural and log scale
+  
+```{r natural scale}
+
+#cutoffs are: 
+# ZIKA_cutoff_2sd
+# ZIKA_cutoff_3sd
+# roc_cutoff
+
+faceted_natural_scale <- ggplot(sample_data, aes(x = WMEV)) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  geom_vline(xintercept = ZIKA_cutoff_2sd, linetype = "longdash", color = "red", size = 0.8) +  # Add vertical dashed line at ZIKA_cutoff_2sd
+  geom_vline(xintercept = ZIKA_cutoff_3sd, linetype = "longdash", color = "purple", size = 0.8) +  # Add vertical dashed line at ZIKA_cutoff_3sd
+  geom_vline(xintercept = roc_cutoff, linetype = "longdash", color = "darkgreen", size = 0.8) +  # Add vertical dashed line at roc_cutoff
+  labs(
+    title = "Put your title here",
+    x = "Antigen MFI",
+    y = "Number of samples"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10),  # Smaller font for facet labels
+    axis.text = element_text(size = 10),  # Smaller font for axis text
+    plot.title = element_text(size = 10)  # Smaller font for the plot title
+  )
+faceted_natural_scale
+
+
+```
+  
+```{r log_scale}
+#log scale
+faceted_log_scale <- ggplot(sample_data, aes(x = log(ZIKA))) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  geom_vline(xintercept = log(ZIKA_cutoff_2sd), linetype = "longdash", color = "red", size = 0.8) +  # Add vertical dashed line at ZIKA_cutoff_2sd
+  geom_vline(xintercept = log(ZIKA_cutoff_3sd), linetype = "longdash", color = "purple", size = 0.8) +  # Add vertical dashed line at ZIKA_cutoff_3sd
+  geom_vline(xintercept = log(roc_cutoff), linetype = "longdash", color = "darkgreen", size = 0.8) +  # Add vertical dashed line at roc_cutoff
+  labs(
+    title = "Put your title here",
+    x = "Log Antigen MFI",
+    y = "Number of samples"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10), 
+    axis.text = element_text(size = 10),  
+    plot.title = element_text(size = 10) 
+  )
+faceted_log_scale
+```  
+
+
+  b. How similar / different are the cutoff methods?
+
+
+6. Which method do you think you will use going forward in your study (if you will use a cutoff)? Why? 
