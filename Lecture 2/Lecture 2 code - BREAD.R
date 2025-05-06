@@ -1,5 +1,5 @@
 
-
+require(flexfit)
 # Lab 1 code --------------------------------------------------------------
 
   #orig function that requires dplyr and tidr
@@ -343,6 +343,317 @@ colnames(plate_1_base_bg)
   all.equal(filter_orig_df, filter_base_df, check.attributes = TRUE)
   
   
-# Lab 2 code --------------------------------------------------------------
+  # Standardization with FlexFit-----------------------------------------------------
+  
+  FUNinv <- function(y, par) {
+    -par["Scale"]*log(((par["Aup"] - par["Alow"])/
+                         (y - par["Alow"]))^(1/par["a"]) - 1) + par["Xmid"]
+  }
+  
+  get_concentration<- function(plate_df_norm, std_curve_values, input){
+    antigen_list<- unique(plate_df_norm$Antigen)
+    
+    std_curve_df<- plate_df_norm|>
+      filter(Sample_Type=="StdCurve")|>
+      left_join(std_curve_values)
+    
+    std_curve_df<- as.data.frame(std_curve_df)
+    
+    sample_log_conc_df<- data.frame()
+    curve_fit_df<-data.frame()
+    for(i in 1:length(antigen_list)){
+      if(input=="MFI"){
+        
+        antigen_curve_complete<- std_curve_df|>
+          filter(Antigen==antigen_list[i])|>
+          mutate(assay_id= Plate, analyte=Antigen, expected_conc= Dilution, fi= MFI,
+                 well_role="Standard", sample_id=Sample, replicate= Replicate,
+                 Log_Dilution= log(Dilution), Log_MFI_val= log(MFI))|>
+          dplyr::select(assay_id, analyte, expected_conc, Dilution, fi, well_role, sample_id, 
+                        replicate,Log_Dilution,Log_MFI_val) 
+        
+        
+        
+        std_curveFit_antigen<- flexfit::fitStd( std= antigen_curve_complete, 
+                                                xvar="Log_Dilution", yvar="Log_MFI_val", interactive = F)
+        
+        
+        
+        
+        if(is.null(std_curveFit_antigen$par)==F){
+          sample_norm_df<- plate_df_norm|>
+            filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+            mutate(log_MFI= log(MFI),
+                   Log_Conc_bg=FUNinv(log(MFI),std_curveFit_antigen$par))
+          
+          
+          sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+        }
+        else{
+          sample_norm_df<- plate_df_norm|>
+            filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+            mutate(Log_Conc_bg=NA, 
+                   log_MFI= log(MFI))
+          
+          
+          sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+        }
+        
+      }
+      
+      
+      
+      if(input=="divMFI"){
+        
+        antigen_curve_complete<- std_curve_df|>
+          filter(Antigen==antigen_list[i])|>
+          mutate(assay_id= Plate, analyte=Antigen, expected_conc= Dilution, fi= MFI_bg,
+                 well_role="Standard", sample_id=Sample, replicate= Replicate,
+                 Log_Dilution= log(Dilution), Log_MFI_bg_val= log(MFI_bg))|>
+          dplyr::select(assay_id, analyte, expected_conc, Dilution, fi, well_role, sample_id, 
+                        replicate,Log_Dilution,Log_MFI_bg_val) 
+        
+        
+        
+        std_curveFit_antigen<- flexfit::fitStd( std= antigen_curve_complete, 
+                                                xvar="Log_Dilution", yvar="Log_MFI_bg_val", interactive = F)
+        
+        
+        
+        
+        if(is.null(std_curveFit_antigen$par)==F){
+          sample_norm_df<- plate_df_norm|>
+            filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+            mutate(Log_MFI_bg_val= log(MFI_bg),
+                   Log_Conc_bg=FUNinv(log(MFI_bg),std_curveFit_antigen$par))
+          
+          sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+          
+         
+        }
+        else{
+          sample_norm_df<- plate_df_norm|>
+            filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+            mutate(Log_MFI_bg_val= log(MFI_bg), 
+                  Log_Conc_bg=NA)
+          
+          sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+          
+         
+        }
+        
+      }
+      
+      
+      if(input=="subMFI"){
+        
+        antigen_curve_complete<- std_curve_df|>
+          filter(Antigen==antigen_list[i])|>
+          mutate(assay_id= Plate, analyte=Antigen, expected_conc= Dilution, fi= MFI_bg,
+                 well_role="Standard", sample_id=Sample, replicate= Replicate,
+                 Log_Dilution= log(Dilution), Log_MFI_bg_val= log(MFI_bg), )|>
+          dplyr::select(assay_id, analyte, expected_conc, Dilution, fi, well_role, sample_id, 
+                        replicate,Log_Dilution,Log_MFI_bg_val) 
+        
+        
+        
+        std_curveFit_antigen<- flexfit::fitStd( std= antigen_curve_complete, 
+                                                xvar="Log_Dilution", yvar="Log_MFI_bg_val", interactive = F)
+        
+       
+        
+        
+        if(is.null(std_curveFit_antigen$par)==F){
+          sample_norm_df<- plate_df_norm|>
+            filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+            mutate(Log_MFI_bg_val= log(MFI_bg), 
+                   
+                   Log_Conc_bg=FUNinv(log(MFI_bg),std_curveFit_antigen$par))
+          
+          sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+         
+        }
+        else{
+          sample_norm_df<- plate_df_norm|>
+            filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+            mutate(Log_MFI_bg_val= log(MFI_bg), 
+                   
+                   Log_Conc_bg=NA)
+          
+          sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+          
+         
+        }
+        
+      }
 
+    }
+    
+    
+    
+    
+    
+    return(sample_log_conc_df)
+    
+  }
 
+  
+  
+  # Normalization with Linear Model-----------------------------------------------------
+  
+  #rename some columns of 
+  
+  
+  get_norm_df<- function(long_df, method){
+    
+   
+    
+    
+  
+    if(method=="MFI"){
+      
+      long_df<- long_df|>
+        mutate(Log_MFI= log(MFI))
+      
+      norm_df_full=data.frame()
+      norm_methods= c("Log_MFI", "Log_Conc_bg")
+      for(i in 1:length(norm_methods)){
+        std_curve_fit= norm_methods[i]
+        wide_df<- long_df|>
+          dplyr::select( Sample, Antigen, std_curve_fit, Plate, Sample_Type)|>
+          pivot_wider(id_cols=c('Plate', 'Sample', 'Sample_Type'), names_from= Antigen, values_from = std_curve_fit)|>
+          drop_na(any_of(antigen_names))|> 
+          filter_all(all_vars(!is.infinite(.)))
+        
+        
+        ctrl_df<- long_df|>
+          dplyr::select(Antigen, Plate, Sample, Sample_Type, std_curve_fit)|>
+          filter(Sample_Type%in%c("StdCurve", "Ctrl"))|>
+          drop_na(any_of(antigen_names))|>
+          filter_all(all_vars(!is.infinite(.)))
+        
+        n_obs_per_plate<- long_df|>
+          group_by(Plate)|>
+          summarize(n_obs=n())
+        #simple LM with ctrls
+        
+        lm_ctrls<- lm(ctrl_df[,std_curve_fit]~Antigen+Plate+Sample, data= ctrl_df)
+        plate_coefs<- lm_ctrls$coefficients[startsWith(names(lm_ctrls$coefficients),"Plate")]
+        
+        long_df<- long_df|>
+          mutate(plate_effect= rep(c(0, plate_coefs), c(n_obs_per_plate$n_obs)))|>
+          mutate(LM_norm_MFI= long_df[,std_curve_fit]-plate_effect)
+        
+        norm_df<-long_df|>
+          #left_join(ma_weightedReg_long, by=c('Plate', 'Sample', 'Location', 'Sample_Type', 'Antigen'))|>
+          #left_join(ma_Reg_long,by=c('Plate', 'Sample', 'Sample_Type', 'Antigen'))|>
+          #left_join(trim_df, by=c('Plate', 'Sample', 'Location', 'Sample_Type', 'Antigen') )|>
+          #left_join(long_df, by= c('Plate', 'Sample', 'Sample_Type', 'Antigen'))|>
+          dplyr::select(Plate, Sample,  Sample_Type, Antigen, 
+                        std_curve_fit, LM_norm_MFI)|>
+          pivot_longer(cols= !c('Plate', 'Sample', 'Sample_Type', 'Antigen'), names_to="Norm_Method", values_to="Norm_MFI")|>
+          mutate(Input_Value = std_curve_fit)
+        
+        norm_df_full<- rbind(norm_df_full, norm_df)
+      }
+      
+    }
+    
+    if(method=="bgMFI"){
+      
+      long_df<- long_df|>
+        mutate(Log_MFI_BG= log(MFI_bg))
+      
+      norm_df_full=data.frame()
+      norm_methods= c("Log_MFI_BG", "Log_Conc_bg")
+      for(i in 1:length(norm_methods)){
+        std_curve_fit= norm_methods[i]
+        wide_df<- long_df|>
+          dplyr::select(Sample, Antigen, std_curve_fit, Plate, Sample_Type)|>
+          pivot_wider(id_cols=c('Plate', 'Sample',  'Sample_Type'), names_from= Antigen, values_from = std_curve_fit)|>
+          drop_na(any_of(antigen_names))|>
+          filter_all(all_vars(!is.infinite(.)))
+        
+        #MA loess
+       
+        ctrl_df<- long_df|>
+          dplyr::select(Antigen, Plate, Sample, Sample_Type, std_curve_fit)|>
+          filter(Sample_Type%in%c("StdCurve", "Ctrl"))|>
+          drop_na(any_of(antigen_names))|>
+          filter_all(all_vars(!is.infinite(.)))
+        
+        n_obs_per_plate<- long_df|>
+          group_by(Plate)|>
+          summarize(n_obs=n())
+        #simple LM with ctrls
+        
+        lm_ctrls<- lm(ctrl_df[,std_curve_fit]~Antigen+Plate+Sample, data= ctrl_df)
+        plate_coefs<- lm_ctrls$coefficients[startsWith(names(lm_ctrls$coefficients),"Plate")]
+        
+        long_df<- long_df|>
+          mutate(plate_effect= rep(c(0, plate_coefs), c(n_obs_per_plate$n_obs)))|>
+          mutate(LM_norm_MFI= long_df[,std_curve_fit]-plate_effect)
+        
+        norm_df<-long_df|>
+          #left_join(ma_weightedReg_long, by=c('Plate', 'Sample', 'Location', 'Sample_Type', 'Antigen'))|>
+          #full_join(ma_Reg_long,by=c('Plate', 'Sample',  'Sample_Type', 'Antigen'))|>
+          #full_join(long_df, by= c('Plate', 'Sample',  'Sample_Type', 'Antigen'))|>
+          dplyr::select(Plate, Sample,  Sample_Type, Antigen, std_curve_fit, LM_norm_MFI)|>
+          pivot_longer(cols= !c('Plate', 'Sample',  'Sample_Type', 'Antigen'), names_to="Norm_Method", values_to="Norm_MFI")|>
+          mutate(Input_Value = std_curve_fit)
+        norm_df_full<- rbind(norm_df_full, norm_df)
+      }
+      
+    }
+    
+    
+    if(method=="subMFI"){
+      
+      
+      long_df<- long_df|>
+        mutate(Log_MFI_BG_corrected= log(MFI_bg))
+      
+      norm_df_full=data.frame()
+      norm_methods= c("Log_MFI_BG_corrected")
+      for(i in 1:length(norm_methods)){
+        std_curve_fit= norm_methods[i]
+        wide_df<- long_df|>
+          dplyr::select( Sample, Antigen, std_curve_fit, Plate, Sample_Type)|>
+          pivot_wider(id_cols=c('Plate', 'Sample', 'Sample_Type'), names_from= Antigen, values_from = std_curve_fit)|>
+          drop_na(any_of(antigen_names))|>
+          filter_all(all_vars(!is.infinite(.)))
+        
+       
+        ctrl_df<- long_df|>
+          dplyr::select(Antigen, Plate, Sample, Sample_Type, std_curve_fit)|>
+          filter(Sample_Type%in%c("StdCurve", "Ctrl"))|>
+          drop_na(any_of(antigen_names))|>
+          filter_all(all_vars(!is.infinite(.)))
+        
+        n_obs_per_plate<- long_df|>
+          group_by(Plate)|>
+          summarize(n_obs=n())
+        #simple LM with ctrls
+        
+        lm_ctrls<- lm(ctrl_df[,std_curve_fit]~Antigen+Plate+Sample, data= ctrl_df)
+        plate_coefs<- lm_ctrls$coefficients[startsWith(names(lm_ctrls$coefficients),"Plate")]
+        
+        long_df<- long_df|>
+          mutate(plate_effect= rep(c(0, plate_coefs), c(n_obs_per_plate$n_obs)))|>
+          mutate(LM_norm_MFI= long_df[,std_curve_fit]-plate_effect)
+        
+        norm_df<-long_df|>
+          #left_join(ma_weightedReg_long, by=c('Plate', 'Sample', 'Location', 'Sample_Type', 'Antigen'))|>
+          #full_join(ma_Reg_long,by=c('Plate', 'Sample',  'Sample_Type', 'Antigen'))|>
+          #left_join(trim_df, by=c('Plate', 'Sample', 'Location', 'Sample_Type', 'Antigen') )|>
+          #full_join(long_df, by= c('Plate', 'Sample',  'Sample_Type', 'Antigen'))|>
+          dplyr::select(Plate, Sample,  Sample_Type, Antigen, std_curve_fit, LM_norm_MFI)|>
+          pivot_longer(cols= !c('Plate', 'Sample',  'Sample_Type', 'Antigen'), names_to="Norm_Method", values_to="Norm_MFI")|>
+          mutate(Input_Value = std_curve_fit)
+        norm_df_full<- rbind(norm_df_full, norm_df)
+      }
+      
+    }
+    return(norm_df_full)
+  }
+  
