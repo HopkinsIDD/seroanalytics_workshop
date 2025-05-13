@@ -297,7 +297,7 @@ summary(meta_data$Luminex_plate)
 
 ```
 
-Now, we can see there are 13 different plates run, with varying numbers of individual samples run (ranging from 22 to 82 per plate). 
+Now, we can see there are 16 different plates run, each with 64individual samples run. 
 
 We can also make integer or numeric variables into character variables. Let's try this for the sex variable and relabel the variable 1=female and 2=male. We can do this using an ifelse statement that will make values that equal 1 state 'female' and values that equal 2 state 'male'. Labeling or changing the variable class can help analyses downstream.
 
@@ -420,7 +420,7 @@ Sometimes merging datasets is useful so that we can connect the meta data like a
 #this code reads in data
 sero_data <- read.csv("Training serostatus df.csv")
 
-#let's make the serostatus variables categorical
+#let's make the serostatus variables characters
 sero_data$CHIKV_serostatus<-as.character(sero_data$CHIKV_serostatus)
 sero_data$DENV_serostatus<-as.character(sero_data$DENV_serostatus)
 
@@ -458,7 +458,9 @@ head(df_long)
 
 # Visualizing data
 
-Now let's cover how to make plots using the `ggplot2` package. While all plots can be made using base R (not using the ggplot2 package), we will make different types of common plots using the `ggplot2` package. Here, you'll learn how to make and interpret the following types of plots, including: scatterplot, boxplot, bar graph, and histogram.
+Now let's cover what a package is. A package in R is a collection of functions, data, and documentation bundled together to extend R’s capabilities. It adds tools for specific tasks like data analysis, visualization, or modeling. You install a package once (e.g., install.packages("ggplot2")) and load it with library(ggplot2) to use its functions.
+
+Here we will learn how to make plots using the `ggplot2` package. While all plots can be made using base R (not using the ggplot2 package), we will make different types of common plots using the `ggplot2` package. Here, you'll learn how to make and interpret the following types of plots, including: scatterplot, boxplot, bar graph, and histogram.
 
 First, let's load the package 'gglpot2'.
 
@@ -556,6 +558,25 @@ ggplot(merged_data, aes(x=log(DENV_MFI))) +
 ggplot(merged_data, aes(x=log(DENV_MFI))) +
   geom_histogram(binwidth=1, fill="cornflowerblue", colour="black") +
   ggtitle("Histogram of age (years)")
+
+```
+
+# Using the source function
+
+The source() function in R runs a script file as if you typed its contents into the console. It’s used to load and execute R code from an external file. This is often used to systematically load a set of necessary packages or functions needed for your Rmd script or project.
+
+The below example R script (my_script.R) defines the square() function: square <- function(x) x^2. By executing the my_script.R file using the source() function we are able to load and use the square() function. Source files are generally run at the beginning of every project to load all the necessary packages and functions needed.
+
+```{r source}
+
+#try to use the square function before executing the my_script.R file
+#square(4)
+
+#execute the my_script.R file using the source() function
+source("my_script.R")
+
+#try to use the square function now
+square(4)
 
 ```
 
