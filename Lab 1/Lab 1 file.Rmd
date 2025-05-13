@@ -22,7 +22,11 @@ For all of the antigens:
 -Sample dilution (especially important for standard curves)
 -Any error messages
 
-```{r}
+```{r readIn}
+
+#label R chunks so that we can easily find them if something goes wrong in the knitting 
+
+##change all file paths to be ~/seroanalytics_workshop/.... we will instruct participants on day 1 to set their WD to that folder so that "~" represents their local path. 
   file_name <- "/Users/sarahlapidus/Documents/Malawi training docs/Data sets/Raw Plate 1 dataset.csv"
   raw_dat <- read.csv(file_name)
   class(raw_dat)
@@ -96,6 +100,7 @@ In addition to the raw sample data, you will likely have additional data about t
 We also need to have an indicator variable to be able to match the data from the machines with other information about the samples
 
 ```{r}
+#see above for file paths 
   file_name <- "/Users/sarahlapidus/Documents/Malawi training docs/Data sets/Training demographics df.csv"
   demographics_dat <- read.csv(file_name)
   class(demographics_dat)
@@ -111,6 +116,8 @@ The negative controls are from people from a non-endemic area, and are expected 
 We also have standard curves for certain antigens
 
 ```{r}
+
+#see above for file paths 
   file_name <- "/Users/sarahlapidus/Documents/Malawi training docs/Data sets/simulated_control_long_training_data.csv"
   control_dat <- read.csv(file_name)
   class(control_dat)
@@ -138,9 +145,11 @@ Other additional data you should have (that may or may not be in a dataset inclu
 
 The Source file includes a function that can read in and tidy the raw data (read_and_tidy function). 
 ```{r run_read_and_tidy}
-
+#see above for file paths 
+#move this to the top of the document where you call your libraries etc. 
 source("/Users/sarahlapidus/Documents/Malawi training docs/Source file V1.R")
 
+#this part here needs to be re copied in lab 2 so that lab 2 can stand alone 
   file_name <- "/Users/sarahlapidus/Documents/Malawi training docs/Data sets/Raw Plate 1 dataset.csv"
   plate_number <- "1"
   num_wells <- 96
@@ -171,8 +180,11 @@ View(plate_1_tidy)
 We will repeat this with Plate 2 raw data.
 ```{r}
 
+#don't re-call the source when you've already done
 source("/Users/sarahlapidus/Documents/Malawi training docs/Source file V1.R")
 
+#don't relabel things that have already been labeled, just write directly for things like plate number or file in the function (e.g. file_name =="xxx.csv", plate_number="2")
+#for things like antigen names if they are not changing from plate-to-plate don't rename them 
   file_name <- "/Users/sarahlapidus/Documents/Malawi training docs/Data sets/Raw Plate 2 dataset.csv"
   plate_number <- "2"
   num_wells <- 96
@@ -242,6 +254,8 @@ Control meta-data
 4. Adjust the code below to read your datasets into R and look at the tops of the datasets
 
 ```{r}
+#what is the intention of this exercise, how is it different than what we previously did in the lab? 
+
   #sample data
   raw_dat_plate1 <- "Plate1 raw dataset.csv" #Adjust these file names to match your dataset names
   head(raw_dat_plate1)
@@ -285,6 +299,8 @@ If you're data sets are already cleaned, or are not in a raw MBA format, use the
 
 Make sure you set the correct working directory (folder that you have your data stored in)
 ```{r}
+#same comment as above, how is this different than what was done before? 
+
   file_name <-  "Plate1 raw dataset.csv" #Adjust name
   plate_number <- "1" #Adjust plate number
   num_wells <- 96  #Adjust number of wells 
@@ -307,15 +323,17 @@ Make sure you set the correct working directory (folder that you have your data 
 9. Look at this dataframe to ensure the function worked as you expected. Save this data frame. 
 
 ```{r}
+#why are we setting the working directory now, why are we writing a csv file at this stage? 
   View(plate_tidy)
   setwd("working_directory_location") #you can adjust this to save file in a different folder
-  write.csv(plate_tidy, "Plate_tidt.csv", row.names = FALSE) #Adjust this to give file a different name (eg. Plate1, Plate2 tidy)
+  write.csv(plate_tidy, "Plate_tidy.csv", row.names = FALSE) #Adjust this to give file a different name (eg. Plate1, Plate2 tidy)
 
 ```
 
 10. Redo steps 8 and 9 for any other raw plates you have.
 
 ```{r}
+#same question as above
   file_name <-  "Plate1 raw dataset.csv" #Adjust name
   plate_number <- "1" #Adjust plate number
   num_wells <- 96  #Adjust number of wells 
@@ -336,8 +354,9 @@ Make sure you set the correct working directory (folder that you have your data 
 ```
 
 ```{r}
+#same question as above 
   View(plate_tidy)
   setwd("working_directory_location") #you can adjust this to save file in a different folder
-  write.csv(plate_tidy, "Plate_tidt.csv", row.names = FALSE) #Adjust this to give file a different name (eg. Plate1, Plate2 tidy)
+  write.csv(plate_tidy, "Plate_tidy.csv", row.names = FALSE) #Adjust this to give file a different name (eg. Plate1, Plate2 tidy)
 
 ```

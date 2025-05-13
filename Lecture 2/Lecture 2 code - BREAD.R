@@ -2,6 +2,9 @@
 require(flexfit)
 # Lab 1 code --------------------------------------------------------------
 
+#if these are in the source file, why are they present again in the lab? 
+#functions should be in source file, unless we want to specifically teach how some parts work. 
+
   #orig function that requires dplyr and tidr
   read_and_tidy<- function(file_name, plate_number, num_wells, antigen_names, control_samples, background_samples, standard_curve_values, bead_threshold){
     
@@ -106,7 +109,12 @@ require(flexfit)
     return(output_df)
   }
 
+  #we don't need to show the participants the test of the read and tidy for base and tidyR
+  
+  #this function should be done one plate at a time, and each plate should be named as a separate object here 
+  
   #testing whether 2 tidy functions are equivalent
+#make sure these quantities (antigen names, control samples etc. are defined within this document not just in lab 1.)
   setwd("/Users/sarahlapidus/Documents/Pipeline docs/Data for R/magpix_output/peterson_magpix")
   
   plate_1_orig_tidy<- read_and_tidy("20230307_uvira_P1_20230304_093310.csv", plate_number = "1", num_wells=96, antigen_names= antigen_names, control_samples = control_samples, background_samples = background_samples,standard_curve_values = standard_curve_df, bead_threshold = 30) 
@@ -121,14 +129,14 @@ require(flexfit)
   colnames(plate_1_orig_tidy) == colnames(plate_1_base_tidy)
   all.equal(plate_1_orig_tidy, plate_1_base_tidy, check.attributes = TRUE)
   
-  
+
   
 # Lecture 2 code ----------------------------------------------------------
 
 
 
 # Remove background -------------------------------------------------------
-
+#fine to leave all the options and then say that we discuss comparisons in the lecture but we don't have them do it in lab
   
   #orig function 
   rm_background_orig<- function(clean_df, method){
@@ -184,7 +192,7 @@ require(flexfit)
     return(clean_df)
   }
   
-  
+#lets show the subtraction option again make sure to do this for each plate, and still keep each plate as its own object   
 plate_1_orig_bg<- rm_background_orig(plate_1, method="division")
 plate_1_orig_sub<- rm_background_orig(plate_1, method="subtraction")
 
@@ -192,6 +200,7 @@ plate_1_base_bg<- rm_background_base(plate_1, method="division")
 plate_1_base_sub<- rm_background_base(plate_1, method="subtraction")
 class(plate_1_base_sub)
 
+#this can go. 
 # 2 functions are equivalent
 all.equal(plate_1_orig_bg, plate_1_base_bg, check.attributes = TRUE)
 all.equal(plate_1_orig_sub, plate_1_base_sub, check.attributes = TRUE)
@@ -200,6 +209,7 @@ all.equal(plate_1_orig_sub, plate_1_orig_bg, check.attributes = TRUE)
 colnames(plate_1_orig_bg)
 colnames(plate_1_base_bg)
 
+#have them explore a little bit post background correction (e.g. what are the new columns etc.) if there is subtraction have them identify if anything is <= 0 (e.g. identify the rows <=0)
 
 
 # Filter low bead count ---------------------------------------------------
@@ -226,130 +236,27 @@ colnames(plate_1_base_bg)
     return(filtered_bg_df)
   }
 
-
+#explore how this changes the dataframe (no. of obs, per antigen etc.) what is the definition of low beads. 
+  
   filter_orig_df <- filter_low_beads_orig(plate_1_orig_sub)
   filter_base_df <- filter_low_beads_base(plate_1_base_sub)
 
   all.equal(filter_orig_df, filter_base_df, check.attributes = TRUE)
   
 
-# MFI transformations -----------------------------------------------------
-
-  #orig function
-  get_mfi_transforms_orig<- function(filt_df){
-    
-    transformed_df<- data.frame()
-    for(i in 1:length(antigen_names)){
-      ag_df<- filt_df|>
-        filter(Antigen==antigen_names[i]&Sample_Type=="TestSample"&MFI_BG>=0)
-      
-      boxcox_fit<- boxcox(MFI_BG~1, plotit=F, data=ag_df)
-      lambda<- boxcox_fit$x[which(boxcox_fit$y==max(boxcox_fit$y))]
-      
-      
-      ag_df<- ag_df|>
-        mutate(Log_BG= log(MFI_BG), BoxCox_BG= (MFI_BG^lambda - 1)/lambda, 
-               Lambda=lambda)
-      
-      transformed_df<- rbind(transformed_df, ag_df)
-      
-    }
-    
-    transformed_df_long<- transformed_df|>
-      gather(Transform_Method, BG_Trans_Value, 'MFI_BG':'BoxCox_BG')|>
-      mutate(Transform_Method_Clean= ifelse(Transform_Method=="MFI_BG", "None", 
-                                            ifelse(Transform_Method=="Log_BG", "Natural Log", 
-                                                   "Box-Cox")))
-    annotate_df<- transformed_df_long|>
-      group_by(Antigen)|>
-      summarize(Lambda= paste0("Lambda=",round(Lambda[1], 3)), Transform_Method_Clean=Transform_Method_Clean[1])
-    
-    dist_plot<- ggplot(transformed_df_long, aes(x=BG_Trans_Value, color=Transform_Method_Clean))+
-      geom_density()+theme_bw()+facet_wrap(~Antigen, scales='free')+xlab("Transformed MFI")+
-      scale_color_brewer(palette="Dark2")+geom_text(data=annotate_df, mapping = aes(
-        x=-Inf, y=-Inf, label=Lambda),hjust=-0.1, vjust=-1, color="black")+
-      ggtitle(paste0("Plate ", transformed_df_long$Plate))+ylab("Density")
-    
-    return(dist_plot)
-  }
-  
-  #base r function
-  get_mfi_transforms_base <- function(filt_df, antigen_names) {
-    
-    transformed_df <- data.frame()
-    
-    for (i in seq_along(antigen_names)) {
-      
-      ag_name <- antigen_names[i]
-      
-      # Filter for this antigen and valid rows
-      ag_df <- filt_df[filt_df$Antigen == ag_name &
-                         filt_df$Sample_Type == "TestSample" &
-                         filt_df$MFI_BG >= 0, ]
-      
-      # Box-Cox lambda estimation
-      boxcox_fit <- boxcox(MFI_BG ~ 1, plotit = FALSE, data = ag_df)
-      lambda <- boxcox_fit$x[which.max(boxcox_fit$y)]
-      
-      # Apply transformations
-      ag_df$Log_BG     <- log(ag_df$MFI_BG)
-      ag_df$BoxCox_BG  <- (ag_df$MFI_BG^lambda - 1) / lambda
-      ag_df$Lambda     <- lambda
-      
-      # Bind to result
-      transformed_df <- rbind(transformed_df, ag_df)
-    }
-    
-    # Reshape long format
-    transformed_df_long <- reshape(transformed_df,
-                                   varying = list(c("MFI_BG", "Log_BG", "BoxCox_BG")),
-                                   v.names = "BG_Trans_Value",
-                                   timevar = "Transform_Method",
-                                   times = c("MFI_BG", "Log_BG", "BoxCox_BG"),
-                                   direction = "long")
-    
-    # Add cleaned method names
-    transformed_df_long$Transform_Method_Clean <- ifelse(transformed_df_long$Transform_Method == "MFI_BG", "None",
-                                                         ifelse(transformed_df_long$Transform_Method == "Log_BG", "Natural Log", "Box-Cox"))
-    
-    # Annotate text
-    annotate_df <- aggregate(Lambda ~ Antigen, data = transformed_df_long, FUN = function(x) paste0("Lambda=", round(x[1], 3)))
-    annotate_df$Transform_Method_Clean <- "None"  # Just needed for merge aesthetics in ggplot
-    
-    # Plot
-    dist_plot <- ggplot(transformed_df_long, aes(x = BG_Trans_Value, color = Transform_Method_Clean)) +
-      geom_density() +
-      theme_bw() +
-      facet_wrap(~ Antigen, scales = "free") +
-      xlab("Transformed MFI") +
-      ylab("Density") +
-      ggtitle(paste0("Plate ", unique(transformed_df_long$Plate))) +
-      scale_color_brewer(palette = "Dark2") +
-      geom_text(data = annotate_df,
-                mapping = aes(x = -Inf, y = -Inf, label = Lambda),
-                hjust = -0.1, vjust = -1, color = "black")
-    
-    return(dist_plot)
-  }
-  
-  get_mfi_transforms_orig(filter_orig_df)
-  get_mfi_transforms_base(filter_base_df)
-  
-  
-  
-  filter_orig_df <- filter_low_beads_orig(plate_1_orig_sub)
-  filter_base_df <- filter_low_beads_base(plate_1_base_sub)
-  
-  all.equal(filter_orig_df, filter_base_df, check.attributes = TRUE)
-  
+##SOPHIE:: to add the BREAD function for standard curve visualization (with comparison to MFI values of samples on plates)
+ 
   
   # Standardization with FlexFit-----------------------------------------------------
-  
+ 
+  #this is pulled from FlexFit sourcecode so it can go in the source file  
   FUNinv <- function(y, par) {
     -par["Scale"]*log(((par["Aup"] - par["Alow"])/
                          (y - par["Alow"]))^(1/par["a"]) - 1) + par["Xmid"]
   }
-  
+#this is also done on a plate by plate basis so each plate needs to be handled separately the 'logging" is done within this function. 
+  #since this function has different options depending on the input (raw, bg subtracted) we can have them run it once per plate on the background subtracted vs raw values for all agxs 
+  #and then we can have them compare how many estimates become "NA" under each circumstance (i.e. is the curve unable to be fit because the shape is not right or is the estiamte beyond the upper/lower asymptote)
   get_concentration<- function(plate_df_norm, std_curve_values, input){
     antigen_list<- unique(plate_df_norm$Antigen)
     
@@ -497,13 +404,16 @@ colnames(plate_1_base_bg)
     
   }
 
+#this standardization also needs to be run on a plate by plate basis. 
   
-  
+
   # Normalization with Linear Model-----------------------------------------------------
   
-  #rename some columns of 
+
+#this requires you to put all the plates together into a long data frame (once you've worked through BREAD up to this point let me know and i will show an example of how to do it)
+#similar to above, we can have them explore with raw input, or subtracted input 
   
-  
+
   get_norm_df<- function(long_df, method){
     
    
@@ -656,4 +566,6 @@ colnames(plate_1_base_bg)
     }
     return(norm_df_full)
   }
+  
+  #have them explore different distributions, size of data, number of NAs etc. 
   
