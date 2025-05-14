@@ -1,24 +1,36 @@
 ---
 title: "Lab 3 code"
 output: html_document
-date: "2025-04-29"
+date: "2025-05-22"
 ---
 
+Lab 3 objectives: Visualize data and calculate and interpret seropositivity based on a cutoff
+
 Go through the following file to complete Lab 3. 
-Note: Trainees should use the data from their own experiment when possible. If methods are not possible (ie because of the lack of controls or standard curve etc), then trainees should use the extra dataset available. Do the following for one of your antigens. If time, repeat for additional antigens.
+
+Note: Trainees should use the data from their own experiment when possible. If methods are not possible (ie because of the lack of controls or standard curve etc), then trainees should use the extra data set available. Do the following for one of your antigens. If time, repeat for additional antigens.
+
+First run the following set up code. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Read in your data. Use the extra dataset for any questions you're not able to answer with your own data.
+```{r source_and_working_directory}
+source("~/seroanalytics_workshop/Source file V1.R")
+```
+
+
+Read in your data. Use the extra data set for any questions you're not able to answer with your own data.
 Edit the code below to read in your data
+
 ```{r reading_in_data}
 
-control_standards_data <- read.csv("/Users/sarahlapidus/Documents/Malawi training docs/Data sets/simulated_control_long_training_data.csv")
-sample_data <- read.csv("/Users/sarahlapidus/Documents/Malawi training docs/Data sets/simulated_sample_wide_training_data.csv")
+standards_data <- read.csv("data/simulated_standard_curve_training_data.csv")
+control_data <- read.csv("data/simulated_control_long_training_data.csv")
+sample_data <- read.csv("data/simulated_sample_wide_training_data.csv")
 
-#this converts sample_data from a wide to a long dataframe
+#this converts sample_data from a wide to a long dataframe. edit the column names to your data.
 sample_long <- reshape(
   sample_data,
   varying = setdiff(names(sample_data), c("id", "age", "sex")),
@@ -30,18 +42,15 @@ sample_long <- reshape(
 )
 rownames(sample_long) <- NULL
 
-  #restricting control_standards_data to positive and negative controls (removes data from standard curves)
-  control_data <- control_standards_data[control_standards_data$vpd_dilution_series=="no",]
 
 ```
 
 1. Adjust the code below to make a histogram of sample MFI values in an untransformed and log scale. 
-  a. Consider how many bins to use. 
+  a. Consider how many bins to use (edit bins = 30 to see what data looks like with different numbers of bins). 
   b. Describe the distribution (untransformed and log scale). 
   c. Are there any outliers or anything unusual about your data?
   
-  
-```{r untransformed_scale}
+```{r sample_untransformed_scale}
 
 #natural scale
 faceted_natural_scale <- ggplot(sample_long, aes(x = mfi)) +
@@ -62,7 +71,8 @@ faceted_natural_scale
 
 ```
 
-```{r log_scale}
+```{r sample_log_scale}
+
 #log scale
 faceted_log_scale <- ggplot(sample_long, aes(x = log(mfi))) +
   geom_histogram(bins = 30, color = "black", fill = "blue") +
@@ -79,15 +89,16 @@ faceted_log_scale <- ggplot(sample_long, aes(x = log(mfi))) +
     plot.title = element_text(size = 10)  # Smaller font for the plot title
   )
 faceted_log_scale
+
 ```
 
   
-2. Make a histogram of control MFI values. Color the histogram by positive and negative controls
+2. Make a histogram of control MFI values. Color the histogram by positive and negative controls. Is there overlap between your positive and negative controls?
 
 ```{r untransformed_controls_histogram}
 
     neg_controls_natural_scale <- ggplot(control_data, aes(x = log(mfi), fill = pos_neg)) +
-      geom_histogram(bins = 10, color = "black") +
+      geom_histogram(bins = 20, color = "black") +
       facet_wrap(~ antigen, scales = "free", ncol = 4) +
       labs(
         title = "Sample Distribution (Natural Scale)",
@@ -106,7 +117,7 @@ faceted_log_scale
 ```{r log_controls_histogram}
 
     neg_controls_log_scale <- ggplot(control_data, aes(x = log(mfi), fill = pos_neg)) +
-      geom_histogram(bins = 10, color = "black") +
+      geom_histogram(bins = 20, color = "black") +
       facet_wrap(~ antigen, scales = "free", ncol = 4) +  # <- Set 5 columns per row
       labs(
         title = "Sample Distribution (Log Scale)",
@@ -126,45 +137,36 @@ faceted_log_scale
 
 3. What is the source of your controls? How would using these controls to establish a cutoff affect your interpretation of seroprevalence for this antigen?
 
-##we should provide some additional 'data' about the training data sets with this information. Something like a methods paragraph about the 'study' this data came from that would include info like this about controls. The context should be from the data that the training data was simulated from when possible.
-
-4. For an antigen with an established standard cutoff:
-If you are using the training data set, you can use the results of yesterday's lecture using the antigen wmev (Measles antigen). For wmev, use the cutoff value of 153 mIU/mL. If you are using your own data, use the results you generated in yesterday's lab. Look up the appropriate cutoff to use.
-  a. Use standard curve to convert IU to MFI for antigen with UI.
-  
-##here we have standard curve data from 2 plates - I don't know what's the appropriate way to use that (for now I just used the first plate)
-##would it be better to average data from the 2 standard curves, or has the standardization from the pre-processing accounted for plate differences in a way that would make another method more appropriate?
-  
-```{r standard curve}
-
-##edit this when lecture/lab 2 code is finalized. 
-#use the results of lab 2, from the function from the Source file that we used yesterday during the pre-processing lab. I'm not sure if we can apply this directly or if we need to make adjustments.
-#should we redo the standard curve here or can we reuse the day 1 results?
-
-#subsetting the data to get the standard curve data.
-control_data_wmev <- control_data[control_data$antigen == "wmev",]
-control_data_wmev <- control_data_wmev[1:11,] #subsetting to first plate of data
+  If you're using the training data set, you can find information about controls in the file: Information about datasets.docx
 
 
-```
+4. For an antigen with an established standard cutoff (eg. based on a correlate of protection):
+If you are using the training data set, you can use the antigen wmev (Measles antigen). For wmev, the cutoff value of 153 mIU/mL is equivalent to an MFI of 156.94 based on a standard curve. 
+If you are using your own data, look up the appropriate cutoff to use.
 
-  b. Apply cutoff. How many people are seropositive according to this cutoff, and what percent of people are seropositive?
+  a. Apply cutoff. How many people are seropositive according to this cutoff, and what percent of people are seropositive?
   
 ```{r applying_cutoff}
 
+#Setting cutoff:
+cutoff <- 156.94 #replace with your cutoff determined from 4a)
+
 #Applying cutoff:
-cutoff <- 500 #replace with your cutoff determined from 4a)
+  #ifelse function, if first statement is true, then outcome is set to 1, and if first statemnet is false, then outcome is 0
+  #since the first statement is a vector, then outcome will be a vector of 1's and 0's.
 seropositivity <- ifelse(sample_data$WMEV > cutoff, 1, 0) #1 indicates seropositive, and 0 indicates seronegative
 
 #number of people seropositve and seronegative  
+cat("Table of number seronegative and seronegative", "\n")
 table(seropositivity,useNA="always")  
   
 #percent of people seropositive and negative
+cat("Table of percent seronegative and seronegative", "\n")
 round(prop.table(table(seropositivity,useNA="always")),3)*100
 
 ```
   
-  c. For this antigen, remake the histogram showing sample MFI values and add a vertical line showing the cutoff. Do this on an untransformed and a log scale.
+  b. For this antigen, remake the histogram showing sample MFI values and add a vertical line showing the cutoff. Do this on an untransformed and a log scale.
   
 ```{r untransformed_scale}
 
@@ -206,7 +208,7 @@ faceted_log_scale <- ggplot(sample_data, aes(x = log(WMEV))) +
 faceted_log_scale
 ```  
   
-  d. For this specific antigen, how would you interpret this seropositivity? 
+  c. For this specific antigen, how would you interpret this seropositivity? 
   
-  e. What do you think about using this cutoff method for this antigen? What are the assumptions that went into this cutoff method?
+  d. What do you think about using this cutoff method for this antigen? What are the assumptions that went into this cutoff method?
 
