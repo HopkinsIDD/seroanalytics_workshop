@@ -1,0 +1,299 @@
+---
+title: "Lab 1 file"
+output: html_document
+date: "2025-05-21"
+---
+
+
+Lab 1 objective: Understand different data formats and clean your raw data file. 
+
+We'll start by setting the working directory and loading our source code. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source_and_working_directory}
+source("~/seroanalytics_workshop/Source file V1.R")
+```
+
+We need to have multiple types of data for analysis. 
+We'll start by going through the different types of data you will want to have.
+
+First we'll look at our plate maps. This shows the plates that were 
+
+The raw CSV file from multiplex contains a number of different types of data that you will need
+This raw data will contain data from one plate (generally 96 wells). It will have wells of samples, controls, standard curves (sometimes), and blanks.
+We will go over one of these raw sheets. Here we can find the raw assay results and the experiment meta-data. Your raw data may look slightly different based on the machine.
+For all of the antigens: 
+-Information about the machine, including when it was last calibrated and validated
+-Raw MFI values
+-Number of beads
+-Sample dilution (especially important for standard curves)
+-Any error messages
+
+```{r read_plate1}
+
+  file_name <- "data/Raw Plate 1 dataset.csv"
+  raw_dat <- read.csv(file_name)
+  head(raw_dat)
+
+```
+
+
+Sections of raw:
+Top part of df contains information about the machine. It is important to check that the machine was working correctly, and passed the validation and calibration checks on the machine. Check the dates of the calibration and validation to make sure it was done before the assay was run.
+
+```{r raw_machine_data}
+  View(raw_dat[c(1:36),])
+```
+
+The next part of the raw data indicates DataType: Median. These are the raw MFI values
+See how these are split for each antigen
+We have separate rows for each well of the plate, including samples, controls, standard curves, and blanks
+Here, our positive controls (POS1 and POS2) are pooled positive controls (expected to be positive to all pathogen antigens). The negative controls (NEG1 and NEG2) are from people from a non-endemic area, and are expected to be negative for all antigens.
+Blanks (BLANK1 and BLANK2) don't include any serum/DBS, and can show how much reactivity there is just do to the machine.
+We can have responses to a control bead as well. In this dataset, SNAP is a control, and we'll talk about what that means tomorrow.
+
+```{r raw_data_median}
+  View(raw_dat[c(38:137),])
+```
+
+The next part is DataType:Net MFI
+This is calculated as the MFI for each antigen - mean(Blank wells). The is the default way to adjust for the background, but there are other ways as well that we'll discuss this afternoon. 
+```{r raw_data_netmfi}
+  View(raw_dat[c(139:236),])
+```
+
+The next part is DataType:Count
+This is the number of beads counted for each antigen
+If there are too few beads measured for an antigen, then that data could be unreliable. 
+This machine was set to aim to measure at least 50 beads for each antigen, but will sometimes measure less than that.
+We can use this data to check that a minimum number of beads were measured for each antigen (eg 30 or 50 beads), and exclude results if too few beads were measured.
+
+```{r raw_data_count}
+  View(raw_dat[c(238:335),])
+```
+
+The next part is Avg Net MFI. If samples were tested in duplicate, this would give average Net MFI (background subtracted MFI) of the duplicates
+
+```{r raw_data_netmfi}
+  View(raw_dat[c(337:432),])
+```
+
+
+The next two sections show the regions for the different antigens, and the number of beads that the machine is set to measure.
+
+```{r raw_data_regions}
+  View(raw_dat[c(434:442),])
+```
+
+The next section is the dilution factor. This likely will be the same for all of the samples. It is important information for the standard curves, which we will use to convert MFI values to other units, like concentration of the antibody. Note that standard curves will be for a specific antigen.
+
+```{r raw_data_dilution}
+  View(raw_dat[c(444:542),])
+```
+
+
+The last sections show whether there were specific types of analysis that the machine already ran (my preference is to use raw results from a machine and do the analysis separately), audit logs, and warning messages. These warning messages show wells where the bead count was <50 for alteast one antigen.
+```{r raw_data_errors}
+  View(raw_dat[c(544:567),])
+```
+
+
+In addition to the raw sample data, you will likely have additional data about the samples. In this training dataset, we have sex and age. This could also include variables like cluster and cluster weights.
+We also need to have an indicator variable to be able to match the data from the machines with other information about the samples
+
+```{r read_in_metadata}
+  file_name <- "data/Training demographics df.csv"
+  demographics_dat <- read.csv(file_name)
+  head(demographics_dat)
+  View(demographics_dat)
+
+```
+
+We also need information on the controls. Ideally, we'll have positive and negative controls for all our antigens, but there is sometimes analyses we can do with only negative controls, or without controls (we'll discuss this tomorrow).
+
+Here, our positive controls are pooled positive controls (expected to be positive to all pathogen antigens). You may have positive controls that are specific for certain antigens.
+The negative controls are from people from a non-endemic area, and are expected to be negative for all antigens. This also may be different for your controls.
+
+```{r read_in_controls}
+
+  file_name <- "data/simulated_control_long_training_data.csv"
+  control_dat <- read.csv(file_name)
+  head(control_dat)
+  
+```
+
+We can look at our data of positive and negative controls by antigen, and make a table showing the numbers of positive and negative controls. 
+
+```{r table_controls}
+
+View(control_dat)
+table(control_dat$antigen, control_dat$pos_neg)
+
+```
+
+For standard curves, we get additional information including the dilutions.
+Some standard curves are specific to certain antigens and some standard curve can be pan-antigen standard curves (standard curves valid across a number of antigens) 
+
+```{r read_in_standard_curves}
+
+  file_name <- "/Users/sarahlapidus/Documents/Malawi training docs/Data sets/Data for github/simulated_standard_curve_training_data.csv"
+  standard_curve_dat <- read.csv(file_name)
+  head(standard_curve_dat)
+  table(standard_curve_dat$Plate, standard_curve_dat$Antigen)
+
+```
+
+
+Other additional data you should have (that may or may not be in a dataset) include:
+  Specimen information (DBS, plasma)
+  Manual flag for sample quality
+
+The Source file includes a function that can read in and tidy the raw data (read_and_tidy function). To use this function, we will first set the following variables specific to our data.
+```{r run_read_and_tidy_plate1}
+
+  file_name <- "data/Raw Plate 1 dataset.csv"
+  plate_number <- "1"
+  num_wells <- 96
+  antigen_names <- c("SNAP",	"WNV",	"YF",	"JE3",	"ZIKA",	"DENV",	"CHIKV",	"GLURPR2",	"CSP",	"PfAMA1",	"PfMSP119",	"WRUV",	"WMEV")
+  control_samples <- c("POS1", "POS2", "NEG1", "NEG2")
+  background_samples <- c("BLANK1", "BLANK2")
+  standard_curve_values= data.frame(Sample= paste0("P", 1:8),
+                                  Dilution= c(1/100, 1/200, 1/400, 1/800, 1/1600, 1/3200, 1/6400, 1/12800),
+                              Location= c("65(1,A9)", "66(1,B9)", "67(1,C9)", "68(1,D9)", "69(1,E9)", "70(1,F9)", "71(1,G9)", "72(1,H9)"),
+                              Replicate= paste0("P", 1:8))
+  bead_threshold <- 30 #this is the minimum number of beads we want to have in our data
+    
+  plate_1_tidy<- read_and_tidy(file_name, plate_number, num_wells, antigen_names, control_samples, background_samples, standard_curve_values, bead_threshold)
+  
+```
+
+This results in a long dataset with results of one antigen per row. It also includes bead counts and plate numbers
+```{r view_plate_1_tidy}
+
+View(plate_1_tidy)
+
+```
+
+
+We will repeat this with Plate 2 raw data.
+```{r run_read_and_tidy_plate1}
+
+  #num_wells, antigen_names, control_samples, background_samples, and standard_curve_values and bead_threshold variables are all the same as they were for plate1, so we don't need to redefine them
+  #file_name and plate_number are different so we redefine them here.
+  file_name_plate2 <- "/Users/sarahlapidus/Documents/Malawi training docs/Data sets/Raw Plate 2 dataset.csv"
+  plate_number_plate2 <- "2"
+  
+  #run the function for plate2 
+  plate_2_tidy<- read_and_tidy(file_name_plate2, plate_number_plate2, num_wells, antigen_names, control_samples, background_samples, standard_curve_values, bead_threshold)
+
+```
+
+Last, we can look at the plate 2 data
+
+```{r view_plate_1_tidy}
+View(plate_2_tidy)
+
+```
+
+
+
+Lab questions:
+
+1. For the following pieces of information, check where you have each piece of information (ie which dataset), or whether there is information you're missing. You may have information that is missing, or information that just wasn't collected or may not be applicable. If you have additional information (variables like latitude/longitude, species (ie if non-human) etc.) if available as well.
+
+Sample meta-data
+  Unique sample ID
+  Sample date
+  Specimen information (DBS, plasma)
+  Manual flag for sample quality
+  Demographics: age, sex, location, vacc status
+  Survey indicators: sample weight
+  Manual flag for whether the sample is included in the data analysis
+  
+Experiment meta-data
+  Plate ID
+  Date run
+  Sample ID
+  Well ID
+  MFI (by antigen)
+  Net MFI (by antigen)
+  Bead count (by antigen)
+
+Control meta-data
+  Unique control ID
+  Positive or negative control
+  Control for which antigen
+  Source/description of control (e.g., “US non-traveler who’s never had Pf malaria”)
+  Dilution, if part of a standard curve (e.g., “Positive Pool 1:50”)
+  Short description of what the control is (e.g., “NIBSC XX international standard”)
+
+2. Is there any data that you're missing that may limit the analysis you're able to do?
+
+3. Make a list of the antigens you're using in your analysis. 
+
+4. Adjust the code below to read your data sets into R and look at the tops of the datasets
+
+```{r lab_read_in_data}
+
+  #Sample data - input code to read in your raw data and view the top of the file using the head function 
+    #for sample code, look in the read_plate1 code chunk above
+
+  #Control data - input code to read in your raw data and view the top of the file using the head function 
+    #for sample code, look in the read_in_controls code chunk above
+
+  #Any other data - input code to read in your raw data and view the top of the file using the head function 
+    #for sample code, look in the read_in_metadata code chunk above
+
+```
+
+5. Take a look at your raw datasets. Is the format similar or different to the raw data set we went through earlier? In what ways is it similar and different? 
+
+```{r lab_view_data}
+
+  #Use the View function to look through the datasets you just loaded
+
+```
+
+
+5. Make a table showing the controls you have by antigen (split by positive and negative controls.)
+Make sure this data set just includes positive and negatives controls. 
+
+```{r lab_control_table}
+
+#for example code check the table_controls chunk above
+# make sure to use the column names from your dataset
+
+```
+
+6. Do you have standard curves in your data? Are they are on the same or different plates than your samples?
+List the antigens the you have standard curves for. How many points are on these curves, and what dilutions are they?
+
+
+
+7. Apply the read and tidy function to your data sets.
+If your data sets are already cleaned, or are not in a raw MBA format, use the raw Plate 3 and Plate 4 training data.
+
+  a. Adjust the following code 
+
+```{r lab_read_and_tidy_function}
+
+  #run the read_and_tidy function on your data. Adjust the code from the above run_read_and_tidy_plate1 code chunk to run this function on your raw data files. 
+  
+```
+
+  b. Look at this data frame to ensure the function worked as you expected. Save this data frame using the write.csv function
+
+```{r view_read_and_tidy_output}
+
+  View(plate_tidy)
+  write.csv(plate_tidy, "Plate_tidy.csv", row.names = FALSE) #Adjust this to give file a different name (eg. Plate1, Plate2 tidy)
+
+```
+
+8. Redo steps 7 for any other raw plates you have.
+If using the training data set, run the function on the raw plate4 data.
+
+
