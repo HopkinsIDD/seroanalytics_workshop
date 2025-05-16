@@ -144,29 +144,7 @@ faceted_log_scale
 If you are using the training data set, you can use the antigen wmev (Measles antigen). For wmev, the cutoff value of 153 mIU/mL is equivalent to an MFI of 156.94 based on a standard curve. 
 If you are using your own data, look up the appropriate cutoff to use.
 
-  a. Apply cutoff. How many people are seropositive according to this cutoff, and what percent of people are seropositive?
-  
-```{r applying_cutoff}
-
-#Setting cutoff:
-cutoff <- 156.94 #replace with your cutoff determined from 4a)
-
-#Applying cutoff:
-  #ifelse function, if first statement is true, then outcome is set to 1, and if first statemnet is false, then outcome is 0
-  #since the first statement is a vector, then outcome will be a vector of 1's and 0's.
-seropositivity <- ifelse(sample_data$WMEV > cutoff, 1, 0) #1 indicates seropositive, and 0 indicates seronegative
-
-#number of people seropositve and seronegative  
-cat("Table of number seronegative and seronegative", "\n")
-table(seropositivity,useNA="always")  
-  
-#percent of people seropositive and negative
-cat("Table of percent seronegative and seronegative", "\n")
-round(prop.table(table(seropositivity,useNA="always")),3)*100
-
-```
-  
-  b. For this antigen, remake the histogram showing sample MFI values and add a vertical line showing the cutoff. Do this on an untransformed and a log scale.
+  a. For this antigen, remake the histogram showing sample MFI values and add a vertical line showing the cutoff. Do this on an untransformed and a log scale.
   
 ```{r untransformed_scale}
 
@@ -208,7 +186,43 @@ faceted_log_scale <- ggplot(sample_data, aes(x = log(WMEV))) +
 faceted_log_scale
 ```  
   
-  c. For this specific antigen, how would you interpret this seropositivity? 
+   b. Apply cutoff. How many people are seropositive according to this cutoff, and what percent of people are seropositive?
   
-  d. What do you think about using this cutoff method for this antigen? What are the assumptions that went into this cutoff method?
+```{r applying_cutoff}
+
+#Setting cutoff:
+cutoff <- 156.94 #replace with your cutoff based on the standard curve
+
+#Applying cutoff:
+  #ifelse function, if first statement is true, then outcome is set to 1, and if first statemnet is false, then outcome is 0
+  #since the first statement is a vector, then outcome will be a vector of 1's and 0's.
+seropositivity <- ifelse(sample_data$WMEV > cutoff, 1, 0) #1 indicates seropositive, and 0 indicates seronegative
+
+#number of people seropositve and seronegative  
+cat("Table of number seronegative and seronegative", "\n")
+table(seropositivity,useNA="always")  
+  
+#percent of people seropositive and negative
+cat("Table of percent seronegative and seronegative", "\n")
+round(prop.table(table(seropositivity,useNA="always")),3)*100
+
+```
+  
+  c. Calculate the confidence interval for this seroprevalence
+  
+```{r seroprevalence_confidence_interval}
+  # Set your parameters
+  x <- 767 #number seropositive. Get the number seropositive in your sample from the seropositive table above
+  n <- nrow(sample_data) #total number of samples in your data
+  conf <- 0.95 #confidence interval. 95% is a standard CI but you can adjust this if you want
+  
+  # Exact interval
+  ci <- binom.exact(x, n, conf.level = conf) #epitools function
+  #
+  cat("CI lower", round(ci$lower,4)*100, "%, CI upper", round(ci$upper,4)*100, "%")
+```
+  
+  d. For this specific antigen, how would you interpret this seropositivity and confidence interval? 
+  
+  e. What do you think about using this cutoff method for this antigen? What are the assumptions that went into this cutoff method?
 
