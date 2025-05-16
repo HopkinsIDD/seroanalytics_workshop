@@ -1,21 +1,28 @@
 ---
 title: "Lab 4 code"
 output: html_document
-date: "2025-04-29"
+date: "2025-05-22"
 ---
+
+Lab 4 objective: Apply different cutoff methods to calculate seroprevalence and compare the results. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source_and_working_directory}
+source("~/seroanalytics_workshop/Source file V1.R")
 ```
 
 Read in your data. Use the extra dataset for any questions you're not able to answer with your own data.
 Edit the code below to read in your data
 ```{r reading_in_data}
 
-control_data <- read.csv("/Users/sarahlapidus/Documents/Malawi training docs/Data sets/Data for github/simulated_control_long_training_data.csv")
-sample_data <- read.csv("/Users/sarahlapidus/Documents/Malawi training docs/Data sets/simulated_sample_wide_training_data.csv")
+standards_data <- read.csv("data/simulated_standard_curve_training_data.csv")
+control_data <- read.csv("data/simulated_control_long_training_data.csv")
+sample_data <- read.csv("data/simulated_sample_wide_training_data.csv")
 
-#this converts sample_data from a wide to a long dataframe
+#this converts sample_data from a wide to a long dataframe. edit the column names to your data.
 sample_long <- reshape(
   sample_data,
   varying = setdiff(names(sample_data), c("id", "age", "sex")),
@@ -30,7 +37,7 @@ rownames(sample_long) <- NULL
 
 ```
 
-1. What positive and/or negative controls do you have available? What was the source of these controls?
+1. What positive and/or negative controls do you have available for which antigens? What was the source of these controls?
 
 2. Using unexposed controls, adjust the code to do the following: 
   a. Determine whether your negative controls are normally distributed on the natural or log scale. 
@@ -38,7 +45,7 @@ rownames(sample_long) <- NULL
 ```{r histogram_neg_controls}
 
     #restrict to negative controls
-    control_negs <- control_data[control_data$pos_neg=="negative",]
+    control_negs <- control_data[control_data$pos_neg=="negative",] #edit this line if needed
 
     #check distributions of data - untransformed
     neg_controls_natural_scale <- ggplot(control_negs, aes(x = mfi)) +
@@ -74,9 +81,8 @@ rownames(sample_long) <- NULL
     neg_controls_log_scale
 ```
   
-  
-  b. Based on the histograms above, chose an antigen with relatively normally distributed negative controls (untransformed or on log scale) for which it could be appropriate to use the mean + SD cutoff method.
-  Calculate a cutoff value as mean + 2 or 3 standard deviations. Use a natural or log transformation as appropriate. Adjust the code below. 
+  b. Based on the histograms above, chose an antigen for which it could be appropriate to use the mean + SD cutoff method.
+  Calculate a cutoff value as mean + 2 or 3 standard deviations. Decide whether you want to use untransformed or log transformed data. Adjust the code below. 
   
 ```{r mean_sd_cutoffs}
 
@@ -89,7 +95,6 @@ rownames(sample_long) <- NULL
   ZIKA_cutoff_3sd <- exp(mean(ZIKA_control_negs_log, na.rm = TRUE) + 3 * sd(ZIKA_control_negs_log, na.rm = TRUE))
   print(ZIKA_cutoff_2sd)
   print(ZIKA_cutoff_3sd)
-
 
 ```
 
@@ -107,19 +112,40 @@ rownames(sample_long) <- NULL
   seropositivity_3sd <- ifelse(sample_data$ZIKA > ZIKA_cutoff_3sd, 1, 0)
   
   #gives numbers of seropositive and negative 
+  cat("Table of number seronegative and seronegative\n")
   table(seropositivity_2sd,useNA="always")
   table(seropositivity_3sd,useNA="always")  
   
   #gives percent of people seropositive and negative
+  cat("Table of percent seronegative and seronegative\n")
   round(prop.table(table(seropositivity_2sd,useNA="always")),3)*100
   round(prop.table(table(seropositivity_3sd,useNA="always")),3)*100
 
 ```
+
+  e. Calculate confidence intervals for this seroprevalence.
   
-3. Use the ROC method to adjust the code to do the following: 
-  a. Choose an MFI value and calculate sensitivity and specificity using positive and negative controls for an antigen. 
+```{r mean_sd_confidence_interval}
+
+# for Mean + 2SD (you can adjust code for mean + 3SD)
+  mean_2sd_table <- table(seropositivity_2sd,useNA="always")
+  mean_2sd_table <- as.data.frame(mean_2sd_table)
   
-```{r sensitivity_specificity}
+x <- mean_2sd_table$Freq[2]
+n <- sum(mean_2sd_table$Freq)
+conf <- 0.95
+
+# Exact interval
+mean_sd_ci <- binom.exact(x, n, conf.level = conf) #epitools function
+cat("CI lower", round(mean_sd_ci$lower,4)*100, "%, CI upper", round(mean_sd_ci$upper,4)*100, "%")
+
+```
+
+3. Sensitivity and specificity
+
+  a. Select a reasonable cutoff for an antigen with positive and negative controls. For this cutoff method, find the number of true postives, true negatives, false positives, and false negatives
+  
+```{r 2x2 table}
 
 cutoff <- 600 #adjust as you choose 
 
@@ -130,6 +156,7 @@ control_data_Zika <- control_data[which(control_data$antigen == "ZIKA"),1:3]
 seropositivity <- ifelse(control_data_Zika$mfi > cutoff, 1, 0)  
 
 #Since we have positive and negative controls, we know which samples are true positive and negatives (from pos_neg variable), compared to the samples we've assigned as positive or negative (based on seropositivity)
+cat("2X2 table showing the positive and negative controls by serostatus", "\n")
 table(control_data_Zika$pos_neg, seropositivity)
 
 #Calculate True Positives, True Negatives,  False Positives, and False Negatives
@@ -138,6 +165,17 @@ TP <- sum(seropositivity == 1 & control_data_Zika$pos_neg == "positive")  # True
 TN <- sum(seropositivity == 0 & control_data_Zika$pos_neg == "negative")  # True Negatives
 FP <- sum(seropositivity == 1 & control_data_Zika$pos_neg == "negative")  # False Positives
 FN <- sum(seropositivity == 0 & control_data_Zika$pos_neg == "positive")  # False Negatives
+
+cat("\n","Number of True positives:", TP, "\n")
+cat("Number of True negative:", TN, "\n")
+cat("Number of False positives:", FP, "\n")
+cat("Number of False negatives:", FN, "\n")
+
+```
+
+  b. calculate sensitivity and specificity using positive and negative controls for this antigen. 
+  
+```{r sensitivity_and_specificity}
 
 # Calculate Sensitivity and Specificity
 Sensitivity <- TP / (TP + FN)
@@ -148,37 +186,55 @@ cat("True Positives:", TP, "\n")
 cat("True Negatives:", TN, "\n")
 cat("False Positives:", FP, "\n")
 cat("False Negatives:", FN, "\n")
-cat("Sensitivity:", round(Sensitivity, 3), "\n")
-cat("Specificity:", round(Specificity, 3), "\n")
-
-
+cat("Sensitivity:", 100*round(Sensitivity, 3), "%\n")
+cat("Specificity:", 100*round(Specificity, 3), "%\n")
 ```
 
-  b. Plot an ROC curve for this antigen.
-
+  c. Plot an ROC curve for this antigen. Edit code to use your own antigen
+    replace control_data_Zika$mfi with your vector of control mfi values
+    replace control_data_Zika$pos_neg with your vector that shows which are positive and negative controls
 
 ```{r generate_roc_curve}
 
-# Generate the ROC curve
-#compute_roc is a function in the source file. Put in a vector of which controls are positive and negative, and a vector of mfi for each control, and it returns a dataframe with False Positive Rate (FPR) and True Positive Rate (TPR) at each cutoff
-source("/Users/sarahlapidus/Documents/Malawi training docs/Source file V1.R")
-roc_df <- compute_roc(control_data_Zika$pos_neg, control_data_Zika$mfi)
+# Step 1: Create thresholds
+thresholds <- sort(unique(control_data_Zika$mfi), decreasing = TRUE)
 
-#we can then plot the results of this function using ggplot to make an ROC curve
+# Step 2: Compute TPR (sensitivity) and FPR (1 - specificity) for each threshold
+roc_df <- data.frame(threshold = thresholds, TPR = NA, FPR = NA)
+
+for (i in seq_along(thresholds)) {
+  t <- thresholds[i]
+  predicted <- ifelse(control_data_Zika$mfi >= t, 1, 0)
+  
+  TP <- sum(predicted == 1 & control_data_Zika$pos_neg == "positive")  # True Positives
+  TN <- sum(predicted == 0 & control_data_Zika$pos_neg == "negative")  # True Negatives
+  FP <- sum(predicted == 1 & control_data_Zika$pos_neg == "negative")  # False Positives
+  FN <- sum(predicted == 0 & control_data_Zika$pos_neg == "positive")  # False Negatives
+    
+  TPR <- TP / (TP + FN)
+  FPR <- FP / (FP + TN)
+  
+  roc_df$TPR[i] <- TPR
+  roc_df$FPR[i] <- FPR
+}
+
+# Step 3: Calculate AUC using the trapezoidal rule
+roc_df <- roc_df[order(roc_df$FPR), ]
+auc <- sum(diff(roc_df$FPR) * (head(roc_df$TPR, -1) + tail(roc_df$TPR, -1)) / 2)
+
+# Step 4: Plot ROC curve using ggplot2
 ggplot(roc_df, aes(x = FPR, y = TPR)) +
-  geom_line(color = "blue") +
+  geom_line(color = "blue", size = 1.2) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
-  labs(
-    title = "ROC Curve",
-    x = "False Positive Rate (FPR)",
-    y = "True Positive Rate (TPR)"
-  ) +
+  labs(title = paste0("ROC Curve (AUC = ", round(auc, 3), ")"),
+       x = "False Positive Rate (1 - Specificity)",
+       y = "True Positive Rate (Sensitivity)") +
   theme_minimal()
 ```
 
-  c. How will you determine the best place on the ROC curve to establish a cutoff? What does this mean for how you weigh possible misclassification?
+  d. How will you determine the best place on the ROC curve to establish a cutoff? What does this mean for how you weigh possible misclassification (ie do you want to prioritize minimizing false negatives, false positives, or both?
   
-  d. Using the ROC curve and the roc_df you generated above, what cutoff value did you use? You want to find a TPR closest to 1 and an FPR closest to 0.  Calculate seropositivity using this cutoff.
+  e. Using the ROC curve and the roc_df you generated above, what cutoff value did you use? You want to find a TPR closest to 1 and an FPR closest to 0.  Calculate seropositivity using this cutoff.
   
 ```{r apply_roc_cutoff}
 
@@ -193,8 +249,26 @@ round(prop.table(table(seropositivity,useNA="always")),3)*100
   
 ```
 
+  f. Calculate confidence intervals for this seroprevalence.
+  
+```{r roc_confidence_interval}
 
-e. Adjust the code below to calculate Youden's J statistic. This is the cutoff that maximizes the value of: Sensitivity + Specificity – 1
+# for Mean + 2SD (you can adjust code for mean + 3SD)
+  roc_table <- table(seropositivity,useNA="always")  
+  roc_table <- as.data.frame(roc_table)
+  
+x <- roc_table$Freq[2]
+n <- sum(roc_table$Freq)
+conf <- 0.95
+
+# Exact interval
+ci_roc <- binom.exact(x, n, conf.level = conf) #epitools function
+cat("CI lower", round(ci_roc$lower,4)*100, "%, CI upper", round(ci_roc$upper,4)*100, "%")
+
+```
+
+  g. Adjust the code below to calculate Youden's J statistic. This is the cutoff that maximizes the value of: Sensitivity + Specificity – 1
+  This is the cutoff you would choose if you want to minimize both false positives and false negatives
 
 ```{r Youden's_J}
 # Calculate Youden's J statistic
@@ -202,7 +276,7 @@ roc_df$YoudenJ <- roc_df$TPR - roc_df$FPR
 
 # Find the row with the maximum Youden's J
 best_index <- which.max(roc_df$YoudenJ)
-youden_cutoff <- roc_df$Threshold[best_index]
+youden_cutoff <- roc_df$threshold[best_index]
 
 # Optionally print the cutoff and corresponding TPR/FPR
 cat("Youden cutoff:", youden_cutoff, "\n")
@@ -211,46 +285,7 @@ cat("FPR at cutoff:", roc_df$FPR[best_index], "\n")
 
 ```
 
-4. Optional: Plot your sample values and consider if they have a good distribution to fit a mixture model.
-
-```{r sample_histogram}
-
-  faceted_natural_scale <- ggplot(sample_long, aes(x = mfi)) +
-  geom_histogram(bins = 30, color = "black", fill = "blue") +
-  facet_wrap(~ antigen, scales = "free", ncol = 5) +  # <- Set 5 columns per row
-  labs(
-    title = "",
-    x = "Antigen MFI",
-    y = "Number of samples"
-  ) +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(size = 10),  # Smaller font for facet labels
-    axis.text = element_text(size = 10),  # Smaller font for axis text
-    plot.title = element_text(size = 10)  # Smaller font for the plot title
-  )
-faceted_natural_scale
-
-#log scale
-faceted_log_scale <- ggplot(sample_long, aes(x = log(mfi))) +
-  geom_histogram(bins = 30, color = "black", fill = "blue") +
-  facet_wrap(~ antigen, scales = "free", ncol = 5) +  # <- Set 5 columns per row
-  labs(
-    title = "",
-    x = "Log Antigen MFI",
-    y = "Number of samples"
-  ) +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(size = 10),  # Smaller font for facet labels
-    axis.text = element_text(size = 10),  # Smaller font for axis text
-    plot.title = element_text(size = 10)  # Smaller font for the plot title
-  )
-faceted_log_scale
-
-```
-
-5. Compare results of all the cutoff methods you have applied. 
+4. Compare results of all the cutoff methods you have applied. 
 
   a. For one antigen, adjust the code to plot the sample results with the different cutoffs indicated. Do this on the natural and log scale
   
@@ -305,8 +340,147 @@ faceted_log_scale <- ggplot(sample_data, aes(x = log(ZIKA))) +
 faceted_log_scale
 ```  
 
+  b. How similar / different is seroprevalance using the different cutoff methods? 
+    Edit the code to calculate each of the cutoff methods (some of these you've already calculated in previous questions)
 
-  b. How similar / different are the cutoff methods?
+```{r all_seroprevalence}
 
+roc_cutoff <- 550 ##put the cutoff you chose here
+seropositivity <- ifelse(sample_data$ZIKA > roc_cutoff, 1, 0) 
+ 
+#number of seropositive people 
+table(seropositivity,useNA="always")  
+  
+#percent of people seropositive and negative
+seropos_table <- round(prop.table(table(seropositivity,useNA="always")),3)*100
+seropos_table[2]
+cat("Seroprevalence:", round(seropos_table[2],4), "%")
+  
+```
 
-6. Which method do you think you will use going forward in your study (if you will use a cutoff)? Why? 
+5. Which method do you think you will use going forward in your study (if you will use a cutoff)? Why? 
+
+6. Optional: If you want to apply a mixture model, answer the following questions
+
+  a. Plot your sample values and consider if they have a good distribution to fit a mixture model.
+
+```{r sample_histogram}
+
+  faceted_natural_scale <- ggplot(sample_long, aes(x = mfi)) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  facet_wrap(~ antigen, scales = "free", ncol = 5) +  
+  labs(
+    title = "",
+    x = "Antigen MFI",
+    y = "Number of samples"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10),  # Smaller font for facet labels
+    axis.text = element_text(size = 10),  # Smaller font for axis text
+    plot.title = element_text(size = 10)  # Smaller font for the plot title
+  )
+faceted_natural_scale
+
+#log scale
+faceted_log_scale <- ggplot(sample_long, aes(x = log(mfi))) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  facet_wrap(~ antigen, scales = "free", ncol = 5) +  # <- Set 5 columns per row
+  labs(
+    title = "",
+    x = "Log Antigen MFI",
+    y = "Number of samples"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10),  # Smaller font for facet labels
+    axis.text = element_text(size = 10),  # Smaller font for axis text
+    plot.title = element_text(size = 10)  # Smaller font for the plot title
+  )
+faceted_log_scale
+
+```
+
+  b. Decide which antigen you want to test. Make a vector of your antigen values. If you want to do a log transformation, do so before putting data into the FMM. Use the following code to run the model with 2 components
+  
+```{r fit_fmm_model}
+  mfi_values <- sample_data$JE3 #fill in your own data here
+  log_antigen_vector <- log(mfi_values)
+  k <- 2 #number of components 
+  fmm_model <- Mclust(log_antigen_vector, G = k, modelNames = "V") 
+  
+```
+  
+  c. Make a plot of your data with the 2 predicted components mapped over them.
+  
+```{r plot_fmm_components}
+    
+  # Extract parameters
+  means <- fmm_model$parameters$mean
+  sds <- sqrt(fmm_model$parameters$variance$sigmasq)
+  props <- fmm_model$parameters$pro
+  
+  # Create density curves for each component
+  x_vals <- seq(min(log_antigen_vector), max(log_antigen_vector), length.out = 1000)
+
+  dens_df <- data.frame(
+  x = rep(x_vals, 2),
+  density = c(
+    dnorm(x_vals, mean = means[1], sd = sds[1]) * props[1],
+    dnorm(x_vals, mean = means[2], sd = sds[2]) * props[2]
+  ),
+  component = factor(rep(1:2, each = length(x_vals)))
+)
+
+# Plot histogram + density curves
+ggplot() +
+  geom_histogram(aes(x = log_antigen_vector, y = after_stat(density)), 
+                 bins = 50, fill = "gray80", color = "white") +
+  geom_line(data = dens_df, aes(x = x, y = density, color = component), size = 1.2) +
+  labs(title = "FMM: Mixture of 2 Components",
+       x = "log(MFI)", y = "Density") +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_minimal()
+```
+  
+  d. Test to see what number of components is the best fit for your data. Remember, FMM might not be an appropriate approach if 2 components is not the best fit for your data.
+```{r number_components}
+
+# Step 1: Fit BIC values for G = 1 to 4
+bic_values <- mclustBIC(log_antigen_vector, modelNames = "V", G = 1:4)
+
+# Step 2: Extract BIC values into a data frame
+bic_df <- as.data.frame(bic_values)
+bic_df$G <- as.numeric(rownames(bic_df))
+
+# Step 3: Find best model based on highest BIC
+best_index <- which.max(bic_df$x)  # V is the column for model "V"
+
+cat("Best number of components based on BIC:", best_index, "\n")
+
+```
+
+  e. If in part d, the model indicates that 2 components is not the best fit for your model, remake the plot showing your sample data fitted with the correct number of components. Copy the code from parts b and c below and edit to run with the best number of components.
+  
+  f. Based on 2 components, calculate seroprevalence using the code below. Remember, if 2 components is not the best fit for your data, then this estimate may not be valid
+  
+```{r}
+
+#this uses the fmm_model results you generated in b. 
+
+# Step 1: Out of the 2 components, we identify which distribution has a higher mean, and assume that is the seropositive component
+component_means <- fmm_model$parameters$mean
+seropositive_component <- which.max(component_means)
+
+# Step 4: Get the posterior probabilities for each sample
+posteriors <- fmm_model$z  #For each sample, this is the probability of the component being in the first component or second component
+seropositive_probs <- posteriors[, seropositive_component] #this pulls out just the probability of each sample being seropositive
+
+# Step 5: Estimate seroprevalence
+estimated_seroprevalence <- mean(seropositive_probs) #the mean of all the probabilities will be equal to the overall population seroprevalence
+
+# Step 6: Report as percentage
+cat("Estimated seroprevalence:", round(estimated_seroprevalence * 100, 1), "%\n")
+```
+  
+  g. Compare the seroprevalence you calculated in part f. to the seroprevalence calculated from the other cutoff methods earlier in the lab. 
