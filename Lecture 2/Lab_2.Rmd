@@ -24,6 +24,7 @@ Before we start, let's navigate to the appropriate working directory. You can ac
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
 source("Source file V1.R")
 
+
 ```
 
 
@@ -192,7 +193,7 @@ First, we will visualize the standard curves in our example data set with raw MF
 
 ```{r stdCurveVis}
 #this function makes use of the standard curve information that first appeared in the plateSetup section above.  
-plate_1_stdCurve<- plot_std_curves(plate_1_bg, std_curve_values = standard_curve_df, input= "MFI")
+plate_1_stdCurve<- plot_std_curves(plate_norm_df= plate_1_bg, std_curve_values = standard_curve_df, input= "MFI")
 #note this function outputs a list of different objects we are only interested in the first object which is why we use the "[[1]]" notation, this signals that from the object "plate_1_stdCurve" we only want to see the first object, which is the plot. 
 plate_1_stdCurve[[1]]
 #note also that 2 antigens (WMEV, measles, and WRUV rubella) do not have standard curve information shown here, this is expected. 

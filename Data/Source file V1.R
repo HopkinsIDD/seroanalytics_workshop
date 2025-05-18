@@ -134,7 +134,7 @@ get_mfi_transforms <- function(filt_df){
 #Standardization
 
   #1. standard curves
-plot_std_curves<- function(plate_1_bg, std_curve_values, input){
+plot_std_curves<- function(plate_norm_df, std_curve_values, input){
   
   
   if(input== "bgMFI"){
