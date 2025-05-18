@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r source_and_working_directory}
-source("~/seroanalytics_workshop/Source file V1.R")
+source("~/seroanalytics_workshop/Data/Source file V1.R")
 ```
 
 We need to have multiple types of data for analysis. 

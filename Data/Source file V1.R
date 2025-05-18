@@ -6,7 +6,7 @@
 
 library(dplyr)
 library(tidyr)
-library(flexFitR) # this needs to change
+library(flexfit) # this needs to change
 library(ggplot2)
 library(epitools)
 library(MASS)
