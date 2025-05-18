@@ -104,10 +104,12 @@ head(plate_4_tidy)
 
 #now we can see how many antigens and samples are represented on each plate 
 plate_1_agxSummary<- summary(as.factor(plate_1_tidy$Antigen))
+plate_1_agxSummary
 # try repeating this on your own for each plate, how many antigens are there in this assay? Does each sample have an output for each antigen? 
 
 #now we can get a summary of different sample types
 plate_1_sampleSummary<- summary(as.factor(plate_1_tidy$Sample_Type))
+plate_1_sampleSummary
 #what do you notice? Do all sample types sum to 96? Why not? (hint think how many measurements are available for each sample, is it just 1 or more than 1)?
 #What happens if you divide the number within each sample category by the number of different antigens? 
 #repeat this for all 4 plates
@@ -245,15 +247,15 @@ plate_4_bg_noMEVnoRUV<- plate_4_bg[-which(plate_4_bg$Antigen%in%c("WMEV","WRUV")
 
 
 #use this function to both estimate the standard curve function and back out the estimated sample concentrations on the log scale
-plate_1_standard<- get_concentrations_FlexFit(plate_1_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
+plate_1_standard<- get_concentration_FlexFit(plate_1_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
 
-plate_2_standard<- get_concentrations_FlexFit(plate_2_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
-
-
-plate_3_standard<- get_concentrations_FlexFit(plate_3_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
+plate_2_standard<- get_concentration_FlexFit(plate_2_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
 
 
-plate_4_standard<- get_concentrations_FlexFit(plate_4_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
+plate_3_standard<- get_concentration_FlexFit(plate_3_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
+
+
+plate_4_standard<- get_concentration_FlexFit(plate_4_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
 
 
 #now check what plate_1_standard looks like first use the head function: 

@@ -134,7 +134,7 @@ get_mfi_transforms <- function(filt_df){
 #Standardization
 
   #1. standard curves
-plot_std_curves<- function(plate_norm_df, std_curve_values, input){
+plot_std_curves<- function(plate_1_bg, std_curve_values, input){
   
   
   if(input== "bgMFI"){
@@ -143,11 +143,19 @@ plot_std_curves<- function(plate_norm_df, std_curve_values, input){
       left_join(std_curve_values)
     std_curve_df$Replicate<- as.factor(std_curve_df$Replicate)
     
-    
+    sample_summary<- plate_norm_df|>
+      filter(Sample_Type=="TestSample")|>
+      group_by(Antigen)|>
+      summarize(MedianMFI= log(median(MFI_BG, na.rm=T)), 
+              Upper95= log(quantile(MFI_BG, 0.95,na.rm=T)), 
+              Lower95= log(quantile(MFI_BG, 0.05,na.rm=T)))
     
     std_curve_plot<- ggplot(data= std_curve_df, aes(x=log(Dilution), y= log(MFI_BG), group=Replicate, color=Replicate))+
       geom_point()+geom_line()+facet_wrap(~Antigen)+xlab("Log Dilution")+ylab("Log Background Corrected MFI")+
-      ggtitle(paste0("Standard Curves for Plate ", std_curve_df$Plate))+theme_bw()+scale_color_brewer(palette="Paired")
+      ggtitle(paste0("Standard Curves for Plate ", std_curve_df$Plate))+theme_bw()+scale_color_brewer(palette="Paired")+
+      geom_hline(data=sample_summary, aes(yintercept=MedianMFI), lty=2, color="red")+
+      geom_hline(data=sample_summary, aes(yintercept=Upper95),  color="red")+
+      geom_hline(data=sample_summary, aes(yintercept=Lower95),  color="red")
   }
   
   if(input=="MFI"){
@@ -157,217 +165,44 @@ plot_std_curves<- function(plate_norm_df, std_curve_values, input){
     
     std_curve_df$Replicate<- as.factor(std_curve_df$Replicate)
     
+    sample_summary<- plate_norm_df|>
+      filter(Sample_Type=="TestSample")|>
+      group_by(Antigen)|>
+      summarize(MedianMFI= log(median(MFI, na.rm=T)), 
+              Upper95= log(quantile(MFI, 0.95,na.rm=T)), 
+              Lower95= log(quantile(MFI, 0.05,na.rm=T)))
+    
     std_curve_plot<- ggplot(data= std_curve_df, aes(x=log(Dilution), y= log(MFI), group=Replicate, color=Replicate))+
       geom_point()+geom_line()+facet_wrap(~Antigen)+xlab("Log Dilution")+ylab("Log Raw MFI")+
-      ggtitle(paste0("Standard Curves for Plate ", std_curve_df$Plate))+theme_bw()+scale_color_brewer(palette="Paired")
+      ggtitle(paste0("Standard Curves for Plate ", std_curve_df$Plate))+theme_bw()+scale_color_brewer(palette="Paired")+
+      geom_hline(data=sample_summary, aes(yintercept=MedianMFI), lty=2, color="red")+
+      geom_hline(data=sample_summary, aes(yintercept=Upper95),  color="red")+
+      geom_hline(data=sample_summary, aes(yintercept=Lower95),  color="red")
     
   }
   return(list(std_curve_plot, std_curve_df))
   
 }
 
-#do we need functions for LJ plots? 
 
-  #2. concentrations
+############################
+FUNinv <- function(y, par) {
+  -par["Scale"]*log(((par["Aup"] - par["Alow"])/
+                       (y - par["Alow"]))^(1/par["a"]) - 1) + par["Xmid"]
+}
 
-#uses flex fit
-# which is the correct function? get_concentration or get_conc_combined_curve
-get_concentration<- function(plate_df_norm, std_curve_values, input, replicate_type){
+
+get_concentration_FlexFit<- function(plate_df_norm, std_curve_values, input){
   antigen_list<- unique(plate_df_norm$Antigen)
   
   std_curve_df<- plate_df_norm|>
     filter(Sample_Type=="StdCurve")|>
     left_join(std_curve_values)
   
-  
   std_curve_df<- as.data.frame(std_curve_df)
   
-  
-  curve_fit_df<-data.frame()
-  for(i in 1:length(antigen_list)){
-    for(j in 1:length(replicate_type)){
-      if(replicate_type[j]=="HylE"&antigen_list[i]!="Typhoid HlyE"){
-        curve_fit<- data.frame(sample= replicate_type[j],
-                               method=c("flexFit", "nCal Regular", "ncal Bayes", "nplr"),
-                               xmid= NA,
-                               upper_lim= NA,
-                               lower_lim= NA,
-                               Antigen= antigen_list[i])
-        
-        curve_fit_df<- rbind(curve_fit_df, curve_fit)
-      }
-      else{
-        if(input=="MFI"){
-          
-          antigen_curve_complete<- std_curve_df|>
-            filter(Antigen==antigen_list[i]&startsWith(Replicate, replicate_type[j]))|>
-            mutate(assay_id= Plate, analyte=Antigen, expected_conc= Dilution, fi= MFI,
-                   well_role="Standard", sample_id=Sample, replicate= str_sub(Replicate, -1),
-                   Log_Dilution= log(Dilution), Log_MFI_val= log(MFI),prop_mfi= convertToProp(MFI))|>
-            dplyr::select(assay_id, analyte, expected_conc, Dilution, fi, well_role, sample_id, 
-                          replicate,Log_Dilution,Log_MFI_val, prop_mfi, replicate) 
-          
-          
-          
-          std_curveFit_antigen<- flexfit::fitStd(std= antigen_curve_complete, 
-                                                 xvar="Log_Dilution", yvar="Log_MFI_val", interactive = F)
-          
-          combined_ncal_fit<- nCal::ncal(log(fi)~ expected_conc, antigen_curve_complete, 
-                                         return.fits=T)
-          
-          joint_ncal_fit<- nCal::ncal(log(fi)~ expected_conc, antigen_curve_complete, return.fits=T,
-                                      bcrm.fit = T, plot=F)
-          
-          
-          
-          combined_ncal_params <- attr(combined_ncal_fit, "fits")[[1]]
-          combined_ncal_coefs<- combined_ncal_params$coefficients
-          
-          joint_ncal_params <- attr(joint_ncal_fit, "fits")
-          
-          direct_compare_combined<- cla2gh(coef(combined_ncal_params))
-          
-          
-          npfit<- nplr(x= antigen_curve_complete$Dilution, y=antigen_curve_complete$prop_mfi)
-          np_params<- getPar(npfit)
-          
-          
-          
-          
-          if(is.null(std_curveFit_antigen$par)==F){
-            
-            
-            curve_fit<- data.frame(sample= replicate_type[j],
-                                   method=c("flexFit", "nCal Regular", "ncal Bayes", "nplr"),
-                                   xmid= unlist(c(unname(std_curveFit_antigen$par[3]), unname(direct_compare_combined[3]),
-                                                  unname(joint_ncal_params$coefficients[4]),unname(log(10^np_params$params[3])))),
-                                   upper_lim= unlist(c(unname(std_curveFit_antigen$par[1]),unname(direct_compare_combined[2]),
-                                                       unname(joint_ncal_params$coefficients[2]),unname(np_params$params[2]))),
-                                   lower_lim= unlist(c(unname(std_curveFit_antigen$par[2]),unname(direct_compare_combined[1]),
-                                                       unname(joint_ncal_params$coefficients[1]),unname(np_params$params[1]))),
-                                   Antigen= antigen_list[i])
-            
-            curve_fit_df<- rbind(curve_fit_df, curve_fit)
-            
-          }
-          else{
-            
-            curve_fit<- data.frame(sample= replicate_type[j],
-                                   method=c("flexFit", "nCal Regular", "ncal Bayes", "nplr"),
-                                   xmid= unlist(c(NA, unname(direct_compare_combined[3]),
-                                                  unname(joint_ncal_params$coefficients[4]),unname(log(10^np_params$params[3])))),
-                                   upper_lim= unlist(c(NA,unname(direct_compare_combined[2]),
-                                                       unname(joint_ncal_params$coefficients[2]),unname(np_params$params[2]))),
-                                   lower_lim= unlist(c(NA,unname(direct_compare_combined[1]),
-                                                       unname(joint_ncal_params$coefficients[1]),unname(np_params$params[1]))),
-                                   Antigen= antigen_list[i])
-            
-            curve_fit_df<- rbind(curve_fit_df, curve_fit)
-            
-            
-          }
-          
-        }
-        
-        
-        
-        if(input=="bgMFI"){
-          
-          antigen_curve_complete<- std_curve_df|>
-            filter(Antigen==antigen_list[i]&startsWith(Replicate, replicate_type[j]))|>
-            mutate(assay_id= Plate, analyte=Antigen, expected_conc= Dilution, fi= MFI_BG,
-                   well_role="Standard", sample_id=Sample, replicate= str_sub(Replicate, -1),
-                   Log_Dilution= log(Dilution), Log_MFI_bg_val= log(MFI_BG),prop_mfi= convertToProp(MFI))|>
-            dplyr::select(assay_id, analyte, expected_conc, Dilution, fi, well_role, sample_id, 
-                          replicate,Log_Dilution,Log_MFI_bg_val,prop_mfi) 
-          
-          
-          
-          std_curveFit_antigen<- flexfit::fitStd( std= antigen_curve_complete, 
-                                                  xvar="Log_Dilution", yvar="Log_MFI_bg_val", interactive = F)
-          
-          combined_ncal_fit<- nCal::ncal(log(fi)~ expected_conc, antigen_curve_complete, 
-                                         return.fits=T)
-          
-          joint_ncal_fit<- nCal::ncal(log(fi)~ expected_conc, antigen_curve_complete, return.fits=T,
-                                      bcrm.fit = T, plot=F)
-          
-          
-          
-          combined_ncal_params <- attr(combined_ncal_fit, "fits")[[1]]
-          combined_ncal_coefs<- combined_ncal_params$coefficients
-          
-          joint_ncal_params <- attr(joint_ncal_fit, "fits")
-          
-          
-          direct_compare_combined<- cla2gh(coef(combined_ncal_params))
-          
-          
-          npfit<- nplr(x= antigen_curve_complete$Dilution, y=antigen_curve_complete$prop_mfi)
-          np_params<- getPar(npfit)
-          
-          
-          
-          if(is.null(std_curveFit_antigen$par)==F){
-            
-            
-            
-            
-            curve_fit<- data.frame(sample=replicate_type[j],
-                                   method=c("flexFit", "nCal Regular", "ncal Bayes", "nplr"),
-                                   xmid= unlist(c(unname(std_curveFit_antigen$par[3]), unname(direct_compare_combined[3]),
-                                                  unname(joint_ncal_params$coefficients[4]),unname(log(10^np_params$params[3])))),
-                                   upper_lim= unlist(c(unname(std_curveFit_antigen$par[1]),unname(direct_compare_combined[2]),
-                                                       unname(joint_ncal_params$coefficients[2]),unname(np_params$params[2]))),
-                                   lower_lim= unlist(c(unname(std_curveFit_antigen$par[2]),unname(direct_compare_combined[1]),
-                                                       unname(joint_ncal_params$coefficients[1]),unname(np_params$params[1]))),
-                                   Antigen= antigen_list[i])
-            
-            curve_fit_df<- rbind(curve_fit_df,curve_fit)
-          }
-          else{
-            
-            
-            curve_fit<- data.frame(sample= replicate_type[j],
-                                   method=c("flexFit", "nCal Regular", "ncal Bayes", "nplr"),
-                                   xmid= unlist(c(NA, unname(direct_compare_combined[3]),
-                                                  unname(joint_ncal_params$coefficients[4]),unname(log(10^np_params$params[3])))),
-                                   upper_lim= unlist(c(NA,unname(direct_compare_combined[2]),
-                                                       unname(joint_ncal_params$coefficients[2]),unname(np_params$params[2]))),
-                                   lower_lim= unlist(c(NA,unname(direct_compare_combined[1]),
-                                                       unname(joint_ncal_params$coefficients[1]),unname(np_params$params[1]))),
-                                   Antigen= antigen_list[i])
-            
-            curve_fit_df<- rbind(curve_fit_df, curve_fit)
-          }
-          
-        }
-      }
-      print(replicate_type[j])
-    }
-    print(antigen_list[i])
-  }
-  
-  
-  
-  
-  
-  return(list(curve_fit_df))
-  
-}
-
-
-get_conc_combined_curve<- function(complete_plates, std_curve_complete, input){
-  
-  std_curve_df<- complete_plates|>
-    filter(Sample_Type=="StdCurve")|>
-    left_join(std_curve_complete)
-  
-  std_curve_df<- as.data.frame(std_curve_df)
-  
-  
-  antigen_list<- unique(complete_plates$Antigen)
   sample_log_conc_df<- data.frame()
+  curve_fit_df<-data.frame()
   for(i in 1:length(antigen_list)){
     if(input=="MFI"){
       
@@ -381,58 +216,139 @@ get_conc_combined_curve<- function(complete_plates, std_curve_complete, input){
       
       
       
-      
-      joint_ncal_fit<- nCal::ncal(log(fi)~ expected_conc, antigen_curve_complete, return.fits=T,
-                                  bcrm.fit = T, plot=F,error.model = "gh_t4")
-      
+      std_curveFit_antigen<- flexfit::fitStd( std= antigen_curve_complete, 
+                                              xvar="Log_Dilution", yvar="Log_MFI_val", interactive = F)
       
       
-      joint_ncal_params <- attr(joint_ncal_fit, "fits")
-      joint_ncal_coefs<- joint_ncal_params$coefficients
       
+      if(is.null(std_curveFit_antigen$par)==F){
+        sample_norm_df<- plate_df_norm|>
+          filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+          mutate(log_MFI= log(MFI),
+                 Log_Conc_bg=FUNinv(log(MFI),std_curveFit_antigen$par))
+        
+       
+        sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+      }
+      else{
+        sample_norm_df<- plate_df_norm|>
+          filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+          mutate(Log_Conc_bg=NA, 
+                 log_MFI= log(MFI))
+        
+    
+        
+        sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+      }
       
-      sample_norm_df<- complete_plates|>
-        filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
-        mutate(Log_Conc_Joint= getConc(joint_ncal_params, log(MFI))[,1])
-      
-      sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
     }
     
-    if(input=="bgMFI"){
+    
+    
+  
+    
+    if(input=="subMFI"){
       
       antigen_curve_complete<- std_curve_df|>
         filter(Antigen==antigen_list[i])|>
-        mutate(assay_id= Plate, analyte=Antigen, expected_conc= Dilution, fi= MFI_BG,
+        mutate(assay_id= Plate, analyte=Antigen, expected_conc= Dilution, fi= MFI_BG_corrected,
                well_role="Standard", sample_id=Sample, replicate= Replicate,
-               Log_Dilution= log(Dilution), Log_MFI_val_bg= log(MFI_BG))|>
+               Log_Dilution= log(Dilution), Log_MFI_BG_val= log(MFI_BG_corrected))|>
         dplyr::select(assay_id, analyte, expected_conc, Dilution, fi, well_role, sample_id, 
-                      replicate,Log_Dilution,Log_MFI_val_bg) 
+                      replicate,Log_Dilution,Log_MFI_BG_val) 
       
       
       
+      std_curveFit_antigen<- flexfit::fitStd( std= antigen_curve_complete, 
+                                              xvar="Log_Dilution", yvar="Log_MFI_BG_val", interactive = F)
       
-      joint_ncal_fit<- nCal::ncal(log(fi)~ expected_conc, antigen_curve_complete, return.fits=T,
-                                  bcrm.fit = T, plot=F,error.model = "gh_t4")
-      
-      
-      
-      joint_ncal_params <- attr(joint_ncal_fit, "fits")
-      joint_ncal_coefs<- joint_ncal_params$coefficients
+     
       
       
-      sample_norm_df<- complete_plates|>
-        filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
-        mutate(Log_Conc_Joint_bg= getConc(joint_ncal_params, log(MFI_BG))[,1])
+      if(is.null(std_curveFit_antigen$par)==F){
+        sample_norm_df<- plate_df_norm|>
+          filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+          mutate(Log_MFI_BG_val= log(MFI_BG_corrected),
+                 Log_Conc_bg=FUNinv(log(MFI_BG_corrected),std_curveFit_antigen$par))
+        
+        sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+        
       
-      sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+      }
+      else{
+        sample_norm_df<- plate_df_norm|>
+          filter(Sample_Type%in%c("Ctrl", "TestSample"), Antigen==antigen_list[i])|>
+          mutate(Log_MFI_BG_val= log(MFI_BG_corrected),
+                 Log_Conc_bg=NA)
+        
+        sample_log_conc_df<- rbind(sample_log_conc_df, sample_norm_df)
+      
+      }
+      
     }
+
   }
+  
+  
+  
+  
   
   return(sample_log_conc_df)
   
 }
 
 
+
 #Normalization
+
+
+
+get_norm_df<- function(long_df, method){
+  if(method=="MFI"){
+    norm_df_full=data.frame()
+    norm_methods= c("log_MFI", "Log_Conc_bg")
+    for(i in 1:length(norm_methods)){
+      std_curve_fit= norm_methods[i]
+      wide_df<- long_df|>
+        dplyr::select(Location, Sample, Antigen, std_curve_fit, Plate, Sample_Type)|>
+        pivot_wider(id_cols=c('Plate', 'Sample', 'Location', 'Sample_Type'), names_from= Antigen, values_from = std_curve_fit)|>
+        filter_all(all_vars(!is.infinite(.)))
+      
+   
+      ctrl_df<- long_df|>
+        dplyr::select(Antigen, Plate, Sample, Sample_Type, std_curve_fit)|>
+        filter(Sample_Type%in%c("StdCurve", "Ctrl"))|>
+        filter_all(all_vars(!is.infinite(.)))
+      
+      n_obs_per_plate<- long_df|>
+        group_by(Plate)|>
+        summarize(n_obs=n())
+      #simple LM with ctrls
+      ctrl_df$Plate<- as.factor(ctrl_df$Plate)
+      
+      lm_ctrls<- lm(ctrl_df[,std_curve_fit]~Antigen+Plate+Sample, data= ctrl_df)
+      plate_coefs<- lm_ctrls$coefficients[startsWith(names(lm_ctrls$coefficients),"Plate")]
+      
+      long_df<- long_df|>
+        mutate(plate_effect= rep(c(0, plate_coefs), c(n_obs_per_plate$n_obs)))|>
+        mutate(LM_norm_MFI= long_df[,std_curve_fit]-plate_effect)
+      
+      norm_df<-long_df|>
+        dplyr::select(Plate, Sample, Location, Sample_Type, Antigen,std_curve_fit, LM_norm_MFI)|>
+        pivot_longer(cols= !c('Plate', 'Sample', 'Location', 'Sample_Type', 'Antigen'), names_to="Norm_Method", values_to="Norm_MFI")|>
+        mutate(Input_Value = std_curve_fit)
+      
+      norm_df_full<- rbind(norm_df_full, norm_df)
+    }
+    
+  }
+  
+ 
+    
+    
+  
+  return(norm_df_full)
+}
+
 
 
