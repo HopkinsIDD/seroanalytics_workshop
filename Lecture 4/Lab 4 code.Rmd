@@ -1,26 +1,37 @@
 ---
-title: "Lab 4 code"
-output: html_document
+title: "Calculating Serostatus Thresholds "
+output: pdf_document
 date: "2025-05-22"
 ---
 
-Lab 4 objective: Apply different cutoff methods to calculate seroprevalence and compare the results. 
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+# Introduction
+The purpose of this document is to compute a threshold of serostatus when there is not an external threshold like there was with measles. This document describes how to use control samples with known prior exposure status to a pathogen (positive or never exposed is usually the case) to establish a threshold then describes how to calculate important performance metrics of this threshold (e.g. sensitivity and specificity). Upon completing this document you will be able to: 
+
+* Identify a threshold of seropositivity using well characterized control samples using negative controls, or using positive and negative controls together. 
+* Characterize the sensitivity and specificity of this threshold. 
+
+
+# General housekeeping
+
+Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of Rstudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the Data folder within the seroanalytics_workshop folder. Alternatively, you can modify the code below as appropriate for your files to get to the Data folder in the seroanalytics_workshop folder. 
+
+```{r Setup}
+#setwd("~seroanalytics_workshop/Data/)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
+source("Source file V1.R")
+
+
 ```
 
-```{r source_and_working_directory}
-source("~/seroanalytics_workshop/Source file V1.R")
-```
+# Reading in data 
 
-Read in your data. Use the extra dataset for any questions you're not able to answer with your own data.
-Edit the code below to read in your data
+Note this is the same procedure as in lab 3.
 ```{r reading_in_data}
 
-standards_data <- read.csv("data/simulated_standard_curve_training_data.csv")
-control_data <- read.csv("data/simulated_control_long_training_data.csv")
-sample_data <- read.csv("data/simulated_sample_wide_training_data.csv")
+
+control_data <- read.csv("simulated_control_long_training_data.csv")
+sample_data <- read.csv("simulated_sample_wide_training_data.csv")
 
 #this converts sample_data from a wide to a long dataframe. edit the column names to your data.
 sample_long <- reshape(
@@ -37,10 +48,13 @@ rownames(sample_long) <- NULL
 
 ```
 
-1. What positive and/or negative controls do you have available for which antigens? What was the source of these controls?
+# Choosing a cutoff based on negative controls.
 
-2. Using unexposed controls, adjust the code to do the following: 
-  a. Determine whether your negative controls are normally distributed on the natural or log scale. 
+We begin by focusing on PfAMA1 responses in this section, feel free to explore other antigens after you have completed these steps. 
+
+We will begin by exploring the distribution of the negative controls. One way to determine a cutoff is to consider samples above distribution of negative controls to be positive. This can be particularly useful for long lasting markers of prior exposure that do not show signs of waning, as is the case for PfAMA1 (long lasting marker of prior malaria exposure). There are several ways one can consider the distribution of negative controls. The simplest way is to assign every sample that has a higher MFI value than the highest negative control to be positive. We can begin with this method. 
+
+First, we can visuzlise the distribution of negative controls. 
   
 ```{r histogram_neg_controls}
 
@@ -80,287 +94,136 @@ rownames(sample_long) <- NULL
       )
     neg_controls_log_scale
 ```
-  
-  b. Based on the histograms above, chose an antigen for which it could be appropriate to use the mean + SD cutoff method.
-  Calculate a cutoff value as mean + 2 or 3 standard deviations. Decide whether you want to use untransformed or log transformed data. Adjust the code below. 
-  
-```{r mean_sd_cutoffs}
 
-  #for ZIKA on log scale. Adjust for your own file
-  ZIKA_control_negs <- control_negs[control_negs$antigen == "ZIKA","mfi"] #creates a vector of mfi values for ZIKA
-  ZIKA_control_negs_log <- log(ZIKA_control_negs)
+Now we can identify the cutoff as being the highest negative control. 
+  
+```{r highestNeg}
+highestNeg_cutoff<- max(control_negs$mfi[which(control_negs$antigen=="PfAMA1")])
+ 
+```
 
-  #calculates cutoffs as mean +2 or 3 SDs. Since we did this on the log scale, we exponentiate results for cutoff on untransformed scale.
-  ZIKA_cutoff_2sd <- exp(mean(ZIKA_control_negs_log, na.rm = TRUE) + 2 * sd(ZIKA_control_negs_log, na.rm = TRUE))
-  ZIKA_cutoff_3sd <- exp(mean(ZIKA_control_negs_log, na.rm = TRUE) + 3 * sd(ZIKA_control_negs_log, na.rm = TRUE))
-  print(ZIKA_cutoff_2sd)
-  print(ZIKA_cutoff_3sd)
+Now, we might want to understand how good our cutoff is, one way to assess this is to compute the sensitivity and specificity under this cutoff. Recall, sensitivity is the proportion of true positives that are accurately classified as positive, and specificity is the proportion of true negatives that are accurately classified as negative. Note, we are able to calculate this because we have both positive and negative control samples, this may not always be the case. 
+
+```{r highestNegSensSpec}
+#compute serostatus using the highest negative value
+control_data_ama1<- control_data[which(control_data$antigen=="PfAMA1"),]
+serostatus_highNeg<- ifelse(control_data_ama1$mfi>highestNeg_cutoff, 1, 0)
+
+#add this serostatus variable to our original control dataset for pfAMA1
+control_data_ama1WithSerostatus<- cbind(control_data_ama1,serostatus_highNeg)
+
+#compute sensitivity
+sens_ama1_highestNeg<- length(which(control_data_ama1WithSerostatus$pos_neg=="positive"&control_data_ama1WithSerostatus$serostatus_highNeg==1))/length(which(control_data_ama1WithSerostatus$pos_neg=="positive"))
+
+sens_ama1_highestNeg
+
+#compute specificity
+
+spec_ama1_highestNeg<- length(which(control_data_ama1WithSerostatus$pos_neg=="negative"&control_data_ama1WithSerostatus$serostatus_highNeg==0))/length(which(control_data_ama1WithSerostatus$pos_neg=="negative"))
+
+spec_ama1_highestNeg
+
 
 ```
 
-  c. How are your negative controls similar/different to negatives in your population?
-  
-  d. What is the seropositivity you calculated using negative controls as a cutoff?
-  
-```{r seropositivity_mean_sd}
+Another common method that only relies on negative controls is to use a fixed number of standard deviations above the mean of the negative controls to establish a cutoff. In this example we choose 3 standard deviations above the mean of the negative controls. Note here, we will work on the log scale. We will check the same test metrics for this cutoff. 
 
-  ZIKA_control_negs <- control_negs[control_negs$antigen == "ZIKA","mfi"] #creates a vector of mfi values for ZIKA
+```{r 3SD}
+#calculate the cutoff
+mean3sd_cutoff<- mean(log(control_data_ama1$mfi[which(control_data_ama1$pos_neg=="negative")]))+3*sd(log(control_data_ama1$mfi[which(control_data_ama1$pos_neg=="negative")]))
 
-  #this code applies the cutoffs we found above to define people as seropositive or seronegative
-  #adjust with the names of your cutoffs
-  seropositivity_2sd <- ifelse(sample_data$ZIKA > ZIKA_cutoff_2sd, 1, 0) #1 is seropositive and 0 is seronegative 
-  seropositivity_3sd <- ifelse(sample_data$ZIKA > ZIKA_cutoff_3sd, 1, 0)
-  
-  #gives numbers of seropositive and negative 
-  cat("Table of number seronegative and seronegative\n")
-  table(seropositivity_2sd,useNA="always")
-  table(seropositivity_3sd,useNA="always")  
-  
-  #gives percent of people seropositive and negative
-  cat("Table of percent seronegative and seronegative\n")
-  round(prop.table(table(seropositivity_2sd,useNA="always")),3)*100
-  round(prop.table(table(seropositivity_3sd,useNA="always")),3)*100
+#calculate serostatus
+serostatus_mean3SD<- ifelse(log(control_data_ama1$mfi)>mean3sd_cutoff, 1, 0)
 
-```
 
-  e. Calculate confidence intervals for this seroprevalence.
-  
-```{r mean_sd_confidence_interval}
 
-# for Mean + 2SD (you can adjust code for mean + 3SD)
-  mean_2sd_table <- table(seropositivity_2sd,useNA="always")
-  mean_2sd_table <- as.data.frame(mean_2sd_table)
-  
-x <- mean_2sd_table$Freq[2]
-n <- sum(mean_2sd_table$Freq)
-conf <- 0.95
+#add this serostatus variable to our original control dataset for pfAMA1
+control_data_ama1WithSerostatus<- cbind(control_data_ama1WithSerostatus,serostatus_mean3SD)
 
-# Exact interval
-mean_sd_ci <- binom.exact(x, n, conf.level = conf) #epitools function
-cat("CI lower", round(mean_sd_ci$lower,4)*100, "%, CI upper", round(mean_sd_ci$upper,4)*100, "%")
+#compute sensitivity
+sens_ama1_mean3sd<- length(which(control_data_ama1WithSerostatus$pos_neg=="positive"&control_data_ama1WithSerostatus$serostatus_mean3SD==1))/length(which(control_data_ama1WithSerostatus$pos_neg=="positive"))
+
+sens_ama1_mean3sd
+
+#compute specificity
+
+spec_ama1_mean3sd<- length(which(control_data_ama1WithSerostatus$pos_neg=="negative"&control_data_ama1WithSerostatus$serostatus_mean3SD==0))/length(which(control_data_ama1WithSerostatus$pos_neg=="negative"))
+
+spec_ama1_mean3sd
+
 
 ```
 
-3. Sensitivity and specificity
-
-  a. Select a reasonable cutoff for an antigen with positive and negative controls. For this cutoff method, find the number of true postives, true negatives, false positives, and false negatives
+*Exercise 1:* 
+What do you notice about the sensitivity and specificity when comparing these two approaches? Which approach would you choose? 
   
-```{r 2x2 table}
+*Exercise 2:*
 
-cutoff <- 600 #adjust as you choose 
+Using code from the previous lab, and the sample data (not control!) for pfAMA1, compute the seroprevalence and 95% confidence intervals using the highest negative cutoff, and then using the mean plus 3SD cutoff. Do you notice any differences?
 
-#restricting just to controls for the antigen we're looking at. Adjust for your own antigen
-control_data_Zika <- control_data[which(control_data$antigen == "ZIKA"),1:3]
-
-# Create Seropos variable based on MFI cutoff
-seropositivity <- ifelse(control_data_Zika$mfi > cutoff, 1, 0)  
-
-#Since we have positive and negative controls, we know which samples are true positive and negatives (from pos_neg variable), compared to the samples we've assigned as positive or negative (based on seropositivity)
-cat("2X2 table showing the positive and negative controls by serostatus", "\n")
-table(control_data_Zika$pos_neg, seropositivity)
-
-#Calculate True Positives, True Negatives,  False Positives, and False Negatives
-#in your dataset, check if pos_neg values are coded as positive/negative, pos/neg, 1/0 etc, and change accordingly
-TP <- sum(seropositivity == 1 & control_data_Zika$pos_neg == "positive")  # True Positives
-TN <- sum(seropositivity == 0 & control_data_Zika$pos_neg == "negative")  # True Negatives
-FP <- sum(seropositivity == 1 & control_data_Zika$pos_neg == "negative")  # False Positives
-FN <- sum(seropositivity == 0 & control_data_Zika$pos_neg == "positive")  # False Negatives
-
-cat("\n","Number of True positives:", TP, "\n")
-cat("Number of True negative:", TN, "\n")
-cat("Number of False positives:", FP, "\n")
-cat("Number of False negatives:", FN, "\n")
+```{r exercise2}
 
 ```
 
-  b. calculate sensitivity and specificity using positive and negative controls for this antigen. 
-  
-```{r sensitivity_and_specificity}
+Now we will use the positive and negative controls jointly to come up with a cutoff that seeks to maximize both sensitivity and specificity.First we will plot an ROC curve, this curve describes the relationship between sensitivity and specificity. 
 
-# Calculate Sensitivity and Specificity
-Sensitivity <- TP / (TP + FN)
-Specificity <- TN / (TN + FP)
-
-# Print results
-cat("True Positives:", TP, "\n")
-cat("True Negatives:", TN, "\n")
-cat("False Positives:", FP, "\n")
-cat("False Negatives:", FN, "\n")
-cat("Sensitivity:", 100*round(Sensitivity, 3), "%\n")
-cat("Specificity:", 100*round(Specificity, 3), "%\n")
-```
-
-  c. Plot an ROC curve for this antigen. Edit code to use your own antigen
-    replace control_data_Zika$mfi with your vector of control mfi values
-    replace control_data_Zika$pos_neg with your vector that shows which are positive and negative controls
+In general the ROC fixes a threshold for seropositivity and then computes sensitivity and specificity under that threshold. Then the method repeats this process for a different threshold, and explores a wide range of thresholds (in our case from -11.5 to 58767 MFI). In general for very low MFI thresholds, specificity is high, but sensitivity is low, but as the threshold increases specificity increases. However, at a certain level of threshold specificity starts to decrease. 
 
 ```{r generate_roc_curve}
+#this fits the ROC curve
+rocFit<- roc(response = control_data_ama1$pos_neg,
+               predictor = control_data_ama1$mfi)
+#look at the output
 
-# Step 1: Create thresholds
-thresholds <- sort(unique(control_data_Zika$mfi), decreasing = TRUE)
+rocFit
 
-# Step 2: Compute TPR (sensitivity) and FPR (1 - specificity) for each threshold
-roc_df <- data.frame(threshold = thresholds, TPR = NA, FPR = NA)
+plot(rocFit)
 
-for (i in seq_along(thresholds)) {
-  t <- thresholds[i]
-  predicted <- ifelse(control_data_Zika$mfi >= t, 1, 0)
-  
-  TP <- sum(predicted == 1 & control_data_Zika$pos_neg == "positive")  # True Positives
-  TN <- sum(predicted == 0 & control_data_Zika$pos_neg == "negative")  # True Negatives
-  FP <- sum(predicted == 1 & control_data_Zika$pos_neg == "negative")  # False Positives
-  FN <- sum(predicted == 0 & control_data_Zika$pos_neg == "positive")  # False Negatives
-    
-  TPR <- TP / (TP + FN)
-  FPR <- FP / (FP + TN)
-  
-  roc_df$TPR[i] <- TPR
-  roc_df$FPR[i] <- FPR
-}
 
-# Step 3: Calculate AUC using the trapezoidal rule
-roc_df <- roc_df[order(roc_df$FPR), ]
-auc <- sum(diff(roc_df$FPR) * (head(roc_df$TPR, -1) + tail(roc_df$TPR, -1)) / 2)
 
-# Step 4: Plot ROC curve using ggplot2
-ggplot(roc_df, aes(x = FPR, y = TPR)) +
-  geom_line(color = "blue", size = 1.2) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray") +
-  labs(title = paste0("ROC Curve (AUC = ", round(auc, 3), ")"),
-       x = "False Positive Rate (1 - Specificity)",
-       y = "True Positive Rate (Sensitivity)") +
-  theme_minimal()
 ```
 
-  d. How will you determine the best place on the ROC curve to establish a cutoff? What does this mean for how you weigh possible misclassification (ie do you want to prioritize minimizing false negatives, false positives, or both?
-  
-  e. Using the ROC curve and the roc_df you generated above, what cutoff value did you use? You want to find a TPR closest to 1 and an FPR closest to 0.  Calculate seropositivity using this cutoff.
+Commonly, we want to choose a threshold that maximizes both sensitivity and specificity. This is a quantity known as youden's J. Formally we want to choose the threshold for which the equation sensitivity+specificity-1 has the largest possible value. We will identify the optimal threshold under these conditions and compute sensitivity and specificity. 
   
 ```{r apply_roc_cutoff}
+#first we compute all possible values of this under the different thresholds of the ROC
+indices<- rocFit$sensitivities+rocFit$specificities-1
 
-roc_cutoff <- 550 ##put the cutoff you chose here
-seropositivity <- ifelse(sample_data$ZIKA > roc_cutoff, 1, 0) 
- 
-#number of seropositive people 
-table(seropositivity,useNA="always")  
-  
-#percent of people seropositive and negative
-round(prop.table(table(seropositivity,useNA="always")),3)*100
-  
-```
+ROCThreshold= rocFit$thresholds[which(indices==max(indices))][1]
 
-  f. Calculate confidence intervals for this seroprevalence.
-  
-```{r roc_confidence_interval}
+serostatus_ROC<- ifelse(control_data_ama1$mfi>ROCThreshold, 1, 0)
 
-# for Mean + 2SD (you can adjust code for mean + 3SD)
-  roc_table <- table(seropositivity,useNA="always")  
-  roc_table <- as.data.frame(roc_table)
-  
-x <- roc_table$Freq[2]
-n <- sum(roc_table$Freq)
-conf <- 0.95
 
-# Exact interval
-ci_roc <- binom.exact(x, n, conf.level = conf) #epitools function
-cat("CI lower", round(ci_roc$lower,4)*100, "%, CI upper", round(ci_roc$upper,4)*100, "%")
+
+#add this serostatus variable to our original control dataset for pfAMA1
+control_data_ama1WithSerostatus<- cbind(control_data_ama1WithSerostatus,serostatus_ROC)
+
+#compute sensitivity
+sens_ama1_ROC<- length(which(control_data_ama1WithSerostatus$pos_neg=="positive"&control_data_ama1WithSerostatus$serostatus_ROC==1))/length(which(control_data_ama1WithSerostatus$pos_neg=="positive"))
+
+sens_ama1_ROC
+
+#compute specificity
+
+spec_ama1_ROC<- length(which(control_data_ama1WithSerostatus$pos_neg=="negative"&control_data_ama1WithSerostatus$serostatus_ROC==0))/length(which(control_data_ama1WithSerostatus$pos_neg=="negative"))
+
+spec_ama1_ROC
 
 ```
 
-  g. Adjust the code below to calculate Youden's J statistic. This is the cutoff that maximizes the value of: Sensitivity + Specificity – 1
-  This is the cutoff you would choose if you want to minimize both false positives and false negatives
+How do these outputs compare to those from the previous cutoffs? 
 
-```{r Youden's_J}
-# Calculate Youden's J statistic
-roc_df$YoudenJ <- roc_df$TPR - roc_df$FPR
+*Exercise 3:*
 
-# Find the row with the maximum Youden's J
-best_index <- which.max(roc_df$YoudenJ)
-youden_cutoff <- roc_df$threshold[best_index]
+Using code from the previous lab, and the sample data (not control!) for pfAMA1, compute the seroprevalence and 95% confidence intervals using ROC cutoff. Do you notice any differences?
 
-# Optionally print the cutoff and corresponding TPR/FPR
-cat("Youden cutoff:", youden_cutoff, "\n")
-cat("TPR at cutoff:", roc_df$TPR[best_index], "\n")
-cat("FPR at cutoff:", roc_df$FPR[best_index], "\n")
+```{r exercise3}
 
 ```
 
-4. Compare results of all the cutoff methods you have applied. 
+# Optional
 
-  a. For one antigen, adjust the code to plot the sample results with the different cutoffs indicated. Do this on the natural and log scale
-  
-```{r natural scale}
-
-#cutoffs are: 
-# ZIKA_cutoff_2sd
-# ZIKA_cutoff_3sd
-# roc_cutoff
-
-faceted_natural_scale <- ggplot(sample_data, aes(x = WMEV)) +
-  geom_histogram(bins = 30, color = "black", fill = "blue") +
-  geom_vline(xintercept = ZIKA_cutoff_2sd, linetype = "longdash", color = "red", size = 0.8) +  # Add vertical dashed line at ZIKA_cutoff_2sd
-  geom_vline(xintercept = ZIKA_cutoff_3sd, linetype = "longdash", color = "purple", size = 0.8) +  # Add vertical dashed line at ZIKA_cutoff_3sd
-  geom_vline(xintercept = roc_cutoff, linetype = "longdash", color = "darkgreen", size = 0.8) +  # Add vertical dashed line at roc_cutoff
-  geom_vline(xintercept = youden_cutoff, linetype = "longdash", color = "orange", size = 0.8) +  # Add vertical dashed line at roc_cutoff
-  labs(
-    title = "Put your title here",
-    x = "Antigen MFI",
-    y = "Number of samples"
-  ) +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(size = 10),  # Smaller font for facet labels
-    axis.text = element_text(size = 10),  # Smaller font for axis text
-    plot.title = element_text(size = 10)  # Smaller font for the plot title
-  )
-faceted_natural_scale
-
-
-```
-  
-```{r log_scale}
-#log scale
-faceted_log_scale <- ggplot(sample_data, aes(x = log(ZIKA))) +
-  geom_histogram(bins = 30, color = "black", fill = "blue") +
-  geom_vline(xintercept = log(ZIKA_cutoff_2sd), linetype = "longdash", color = "red", size = 0.8) +  # Add vertical dashed line at ZIKA_cutoff_2sd
-  geom_vline(xintercept = log(ZIKA_cutoff_3sd), linetype = "longdash", color = "purple", size = 0.8) +  # Add vertical dashed line at ZIKA_cutoff_3sd
-  geom_vline(xintercept = log(roc_cutoff), linetype = "longdash", color = "darkgreen", size = 0.8) +  # Add vertical dashed line at roc_cutoff
-    geom_vline(xintercept = log(youden_cutoff), linetype = "longdash", color = "orange", size = 0.8) +  # Add vertical dashed line at roc_cutoff
-  labs(
-    title = "Put your title here",
-    x = "Log Antigen MFI",
-    y = "Number of samples"
-  ) +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(size = 10), 
-    axis.text = element_text(size = 10),  
-    plot.title = element_text(size = 10) 
-  )
-faceted_log_scale
-```  
-
-  b. How similar / different is seroprevalance using the different cutoff methods? 
-    Edit the code to calculate each of the cutoff methods (some of these you've already calculated in previous questions)
-
-```{r all_seroprevalence}
-
-roc_cutoff <- 550 ##put the cutoff you chose here
-seropositivity <- ifelse(sample_data$ZIKA > roc_cutoff, 1, 0) 
- 
-#number of seropositive people 
-table(seropositivity,useNA="always")  
-  
-#percent of people seropositive and negative
-seropos_table <- round(prop.table(table(seropositivity,useNA="always")),3)*100
-seropos_table[2]
-cat("Seroprevalence:", round(seropos_table[2],4), "%")
-  
-```
-
-5. Which method do you think you will use going forward in your study (if you will use a cutoff)? Why? 
-
-6. Optional: If you want to apply a mixture model, answer the following questions
+If you want to apply a mixture model, answer the following questions
 
   a. Plot your sample values and consider if they have a good distribution to fit a mixture model.
 

@@ -6,10 +6,12 @@
 
 library(dplyr)
 library(tidyr)
-library(flexfit) # this needs to change
+library(flexfit) 
 library(ggplot2)
 library(epitools)
 library(MASS)
+library(pROC)
+library(mclust)
 #add more libraries here as needed
 
 # Lab 1 function ---------------------------------------------------------
