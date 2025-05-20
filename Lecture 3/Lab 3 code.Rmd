@@ -26,7 +26,7 @@ source("Source file V1.R")
 
 # Reading in data
 
-Read in the example data using the code below. You will notice these data have a slightly different structure than the csv files we have previously been working with. This is because oftentimes serial dilutions (standard curves), and control samples with knwon prior exposure status are often run on different plates than the cohort samples. This can often be the case even when there are a small number of control wells on the plates with cohort samples. This can be because a larger volume of control samples are required to establish a cutoff therefore it is not feasible to run these two sets of samples on the same plates. 
+Read in the example data using the code below. You will notice these data have a slightly different structure than the csv files we have previously been working with. This is because oftentimes serial dilutions (standard curves), and control samples with known prior exposure status are often run on different plates than the cohort samples. This can often be the case even when there are a small number of control wells on the plates with cohort samples. This can be because a larger volume of control samples are required to establish a cutoff therefore it is not feasible to run these two sets of samples on the same plates. 
 
 ```{r reading_in_data}
 #standard curve data
