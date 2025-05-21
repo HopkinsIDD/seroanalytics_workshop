@@ -19,8 +19,10 @@ Before we start, let's navigate to the appropriate working directory. You can ac
 ```{r Setup}
 #setwd("~seroanalytics_workshop/Data/)
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
-source("Source file V1.R")
 
+getwd()
+my_path <- 'COPY YOUR FILE PATH TO seroanalytics_workshop/Data FOLDER'
+source(paste(my_path, "Source file V1.R", sep="/"))
 
 ```
 
@@ -30,8 +32,8 @@ Note this is the same procedure as in lab 3.
 ```{r reading_in_data}
 
 
-control_data <- read.csv("simulated_control_long_training_data.csv")
-sample_data <- read.csv("simulated_sample_wide_training_data.csv")
+control_data <- read.csv(paste(my_path, "simulated_control_long_training_data.csv", sep="/"))
+sample_data <- read.csv(paste(my_path, "simulated_sample_wide_training_data.csv", sep="/"))
 
 #this converts sample_data from a wide to a long dataframe. edit the column names to your data.
 sample_long <- reshape(
