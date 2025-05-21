@@ -297,7 +297,7 @@ summary(meta_data$Luminex_plate)
 
 ```
 
-Now, we can see there are 16 different plates run, each with 64individual samples run. 
+Now, we can see there are 16 different plates run, all but 1 plate has 64 individual samples run. Only 1 plate (Plate 16) has 40 samples run on it.
 
 We can also make integer or numeric variables into character variables. Let's try this for the sex variable and relabel the variable 1=female and 2=male. We can do this using an ifelse statement that will make values that equal 1 state 'female' and values that equal 2 state 'male'. Labeling or changing the variable class can help analyses downstream.
 
@@ -393,7 +393,7 @@ sum(meta_data$sex1 == "Female") / sum(meta_data$sex1 == "Female" | meta_data$sex
 
 ```
  
-The proportion of households with female head is thus `r sum(meta_data$sex1 == "Female") / sum(meta_data$sex1 == "Female" | meta_data$sex1 == "Male")`.  
+The proportion of households with females is thus `r sum(meta_data$sex1 == "Female") / sum(meta_data$sex1 == "Female" | meta_data$sex1 == "Male")`.  
 
 In this particular instance, because there are no missing values, we can also use the length of variable as our denominator:
 
@@ -465,6 +465,21 @@ Here we will learn how to make plots using the `ggplot2` package. While all plot
 First, let's load the package 'gglpot2'.
 
 ```{r setup, warning=FALSE, results=FALSE, message=FALSE}
+
+#install packages that will be needed; the install.packages() function can be used
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("epitools")
+#install.packages("MASS")
+#install.packages("pROC")
+#install.packages("mclust")
+#install.packages("devtools")
+
+#install the flexfit package 
+#to use the devtools package and install the flexfit package accurately you need to have R version 4.0 or higher 
+#library(devtools)
+#install_github("EPPIcenter/flexfit")
 
 #the library function loads the ggplot2 package
 library(ggplot2)
@@ -557,7 +572,7 @@ ggplot(merged_data, aes(x=log(DENV_MFI))) +
 
 ggplot(merged_data, aes(x=log(DENV_MFI))) +
   geom_histogram(binwidth=1, fill="cornflowerblue", colour="black") +
-  ggtitle("Histogram of age (years)")
+  ggtitle("Histogram of DENV MFI values")
 
 ```
 
