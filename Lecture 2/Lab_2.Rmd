@@ -20,8 +20,7 @@ The purpose of this document is to provide an introduction to pre-processing you
 Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of Rstudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the Data folder within the seroanalytics_workshop folder. Alternatively, you can modify the code below as appropriate for your files to get to the Data folder in the seroanalytics_workshop folder. 
 
 ```{r Setup}
-my_wd<- ""
-#setwd("~seroanalytics_workshop/Data/)
+
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
 getwd()
 my_path <- 'COPY YOUR FILE PATH TO seroanalytics_workshop/Data FOLDER'
@@ -66,7 +65,7 @@ plate_1_tidy<-read_and_tidy(
                       bead_threshold = 30)
 
 plate_2_tidy<-read_and_tidy(
-                      file_name=file_name=paste(my_path, "Raw Plate 2 dataset.csv", sep="/"), 
+                      file_name=paste(my_path, "Raw Plate 2 dataset.csv", sep="/"), 
                       plate_number=2, 
                       num_wells= 96, 
                       antigen_names = agx_names, 
@@ -76,7 +75,7 @@ plate_2_tidy<-read_and_tidy(
                       bead_threshold = 30)
 
 plate_3_tidy<-read_and_tidy(
-                      file_name=file_name=paste(my_path, "Raw Plate 3 dataset.csv", sep="/"), 
+                      file_name=paste(my_path, "Raw Plate 3 dataset.csv", sep="/"), 
                       plate_number=3, 
                       num_wells= 96, 
                       antigen_names = agx_names, 
@@ -86,7 +85,7 @@ plate_3_tidy<-read_and_tidy(
                       bead_threshold = 30)
 
 plate_4_tidy<-read_and_tidy(
-                      file_name=file_name=paste(my_path, "Raw Plate 4 dataset.csv", sep="/"), 
+                      file_name=paste(my_path, "Raw Plate 4 dataset.csv", sep="/"), 
                       plate_number=4, 
                       num_wells= 96, 
                       antigen_names = agx_names, 
