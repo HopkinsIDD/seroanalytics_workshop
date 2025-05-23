@@ -190,7 +190,7 @@ We will now begin exploring one data set, the "meta_data" data to discover:
 2. Which variables are in these data
 3. The types of these variables
 
-Let's begin by viewing our full dataset with the "view" function. 
+Let's begin by viewing our full dataset with the "View" function. 
 
 ```{r,message=F, warning=F, results='hide', eval=F}
 #this code allows us to view our data
@@ -297,7 +297,7 @@ summary(meta_data$Luminex_plate)
 
 ```
 
-Now, we can see there are 16 different plates run, each with 64individual samples run. 
+Now, we can see there are 16 different plates run, all but 1 plate has 64 individual samples run. Only 1 plate (Plate 16) has 40 samples run on it.
 
 We can also make integer or numeric variables into character variables. Let's try this for the sex variable and relabel the variable 1=female and 2=male. We can do this using an ifelse statement that will make values that equal 1 state 'female' and values that equal 2 state 'male'. Labeling or changing the variable class can help analyses downstream.
 
@@ -393,7 +393,7 @@ sum(meta_data$sex1 == "Female") / sum(meta_data$sex1 == "Female" | meta_data$sex
 
 ```
  
-The proportion of households with female head is thus `r sum(meta_data$sex1 == "Female") / sum(meta_data$sex1 == "Female" | meta_data$sex1 == "Male")`.  
+The proportion of households with females is thus `r sum(meta_data$sex1 == "Female") / sum(meta_data$sex1 == "Female" | meta_data$sex1 == "Male")`.  
 
 In this particular instance, because there are no missing values, we can also use the length of variable as our denominator:
 
@@ -460,16 +460,45 @@ head(df_long)
 
 Now let's cover what a package is. A package in R is a collection of functions, data, and documentation bundled together to extend R’s capabilities. It adds tools for specific tasks like data analysis, visualization, or modeling. You install a package once (e.g., install.packages("ggplot2")) and load it with library(ggplot2) to use its functions.
 
-Here we will learn how to make plots using the `ggplot2` package. While all plots can be made using base R (not using the ggplot2 package), we will make different types of common plots using the `ggplot2` package. Here, you'll learn how to make and interpret the following types of plots, including: scatterplot, boxplot, bar graph, and histogram.
+First, let's install the following packages. You only need to install packages once (with the install.packages function), but they need to be loaded each time you start R to use them.
 
-First, let's load the package 'gglpot2'.
+```{r install_packages, warning=FALSE, results=FALSE, message=FALSE}
 
-```{r setup, warning=FALSE, results=FALSE, message=FALSE}
+#install packages that will be needed; the install.packages() function can be used
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("epitools")
+install.packages("MASS")
+install.packages("pROC")
+install.packages("mclust")
+install.packages("devtools")
 
-#the library function loads the ggplot2 package
-library(ggplot2)
+#install the flexfit package 
+#to use the devtools package and install the flexfit package accurately you need to have R version 4.0 or higher 
+#this package is not on CRAN so we instead install it from github (using the install_github function). This function is in the devtools package, so we first load devtools (using the library function)
+library(devtools)
+install_github("EPPIcenter/flexfit")
 
 ```
+
+Next, we can load the other packages we've installed using the library function
+
+```{r load_packages}
+
+#the library function loads each package
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(epitools)
+library(MASS)
+library(pROC)
+library(mclust)
+
+```
+
+
+Here we will learn how to make plots using the `ggplot2` package. While all plots can be made using base R (not using the ggplot2 package), we will make different types of common plots using the `ggplot2` package. Here, you'll learn how to make and interpret the following types of plots, including: scatterplot, boxplot, bar graph, and histogram.
 
 According to the developers of `ggplot2`: *It’s hard to succinctly describe how `ggplot2` works because it embodies a deep philosophy of visualisation. However, in most cases you start with `ggplot()`, supply a dataset and aesthetic mapping (with `aes()`). You then add on layers (like `geom_point()` or `geom_histogram()`), scales (like `scale_colour_brewer()`), faceting specifications (like `facet_wrap()`) and coordinate systems (like `coord_flip()`).* Reference: <https://ggplot2.tidyverse.org/>.
 
@@ -557,7 +586,7 @@ ggplot(merged_data, aes(x=log(DENV_MFI))) +
 
 ggplot(merged_data, aes(x=log(DENV_MFI))) +
   geom_histogram(binwidth=1, fill="cornflowerblue", colour="black") +
-  ggtitle("Histogram of age (years)")
+  ggtitle("Histogram of DENV MFI values")
 
 ```
 
