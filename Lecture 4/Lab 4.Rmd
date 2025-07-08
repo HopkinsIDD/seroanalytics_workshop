@@ -21,7 +21,7 @@ Before we start, let's navigate to the appropriate working directory. You can ac
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
 
 getwd()
-my_path <- 'COPY YOUR FILE PATH TO seroanalytics_workshop/Data FOLDER'
+my_path <- '~/Library/CloudStorage/OneDrive-JohnsHopkins/seroanalytics_workshop/Data/' #input your working directory path
 source(paste(my_path, "Source file V1.R", sep="/"))
 
 ```
@@ -49,6 +49,100 @@ rownames(sample_long) <- NULL
 
 
 ```
+
+# Visualizing your controls 
+#General visalization 
+
+1. Adjust the code below to make a histogram of sample MFI values in an untransformed and log scale. 
+  a. Consider how many bins to use (edit bins = 30 to see what data looks like with different numbers of bins). 
+  b. Describe the distribution (untransformed and log scale). 
+  c. Are there any outliers or anything unusual about your data?
+  
+```{r sample_untransformed_scale}
+
+#natural scale
+faceted_natural_scale <- ggplot(sample_long, aes(x = mfi)) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  facet_wrap(~ antigen, scales = "free", ncol = 5) +  # <- Set 5 columns per row
+  labs(
+    title = "Put your title here",
+    x = "Antigen MFI",
+    y = "Number of samples"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10),  # Smaller font for facet labels
+    axis.text = element_text(size = 10),  # Smaller font for axis text
+    plot.title = element_text(size = 10)  # Smaller font for the plot title
+  )
+faceted_natural_scale
+
+```
+
+```{r sample_log_scale}
+
+#log scale
+faceted_log_scale <- ggplot(sample_long, aes(x = log(mfi))) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  facet_wrap(~ antigen, scales = "free", ncol = 5) +  # <- Set 5 columns per row
+  labs(
+    title = "Put your title here",
+    x = "Log Antigen MFI",
+    y = "Number of samples"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10),  # Smaller font for facet labels
+    axis.text = element_text(size = 10),  # Smaller font for axis text
+    plot.title = element_text(size = 10)  # Smaller font for the plot title
+  )
+faceted_log_scale
+
+```
+
+  
+2. Make a histogram of control MFI values. Color the histogram by positive and negative controls. Is there overlap between your positive and negative controls?
+
+```{r untransformed_controls_histogram}
+
+    neg_controls_natural_scale <- ggplot(control_data, aes(x = log(mfi), fill = pos_neg)) +
+      geom_histogram(bins = 20) +
+      facet_wrap(~ antigen, scales = "free", ncol = 4) +
+      labs(
+        title = "Sample Distribution (Natural Scale)",
+        x = "Antigen MFI",
+        y = "Number of samples"
+      ) +
+      theme_minimal() +
+      theme(
+        strip.text = element_text(size = 10), 
+        axis.text = element_text(size = 10),
+        plot.title = element_text(size = 10) 
+      )
+    neg_controls_natural_scale
+```
+
+```{r log_controls_histogram}
+
+    neg_controls_log_scale <- ggplot(control_data, aes(x = log(mfi), fill = pos_neg)) +
+      geom_histogram(bins = 20) +
+      facet_wrap(~ antigen, scales = "free", ncol = 4) +  # <- Set 5 columns per row
+      labs(
+        title = "Sample Distribution (Log Scale)",
+        x = "Log Antigen MFI",
+        y = "Number of samples"
+      ) +
+      theme_minimal() +
+      theme(
+        strip.text = element_text(size = 10),  # Smaller font for facet labels
+        axis.text = element_text(size = 10),  # Smaller font for axis text
+        plot.title = element_text(size = 10)  # Smaller font for the plot title
+      )
+    neg_controls_log_scale
+
+```
+
+
 
 # Choosing a cutoff based on negative controls.
 
@@ -161,9 +255,31 @@ What do you notice about the sensitivity and specificity when comparing these tw
   
 *Exercise 2:*
 
-Using code from the previous lab, and the sample data (not control!) for pfAMA1, compute the seroprevalence and 95% confidence intervals using the highest negative cutoff, and then using the mean plus 3SD cutoff. Do you notice any differences?
+Using code below, and the sample data (not control!) for pfAMA1, compute the seroprevalence and 95% confidence intervals using the highest negative cutoff, and then adapt the code to use the mean plus 3SD cutoff. Do you notice any differences?
 
 ```{r exercise2}
+#Applying cutoff:
+  #ifelse function, if first statement is true, then outcome is set to 1, and if first statemnet is false, then outcome is 0
+  #since the first statement is a vector, then outcome will be a vector of 1's and 0's.
+seropositivity <- ifelse(sample_data$PfAMA1 > highestNeg_cutoff, 1, 0) #1 indicates seropositive, and 0 indicates seronegative
+
+#number of people seropositve and seronegative  
+cat("Table of number seronegative and seronegative", "\n")
+table(seropositivity,useNA="always")  
+  
+#percent of people seropositive and negative
+cat("Table of percent seronegative and seronegative", "\n")
+round(prop.table(table(seropositivity,useNA="always")),3)*100
+
+# Set your parameters
+  x <- 531 #number seropositive. Get the number seropositive in your sample from the seropositive table above
+  n <- nrow(sample_data) #total number of samples in your data, note in these data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this cound.
+  conf <- 0.95 #confidence interval. 95% is a standard CI but you can adjust this if you want
+  
+  # Exact interval
+  ci <- binom.exact(x, n, conf.level = conf) #epitools function
+  #
+  cat("CI lower", round(ci$lower,4)*100, "%, CI upper", round(ci$upper,4)*100, "%")
 
 ```
 
@@ -217,7 +333,7 @@ How do these outputs compare to those from the previous cutoffs?
 
 *Exercise 3:*
 
-Using code from the previous lab, and the sample data (not control!) for pfAMA1, compute the seroprevalence and 95% confidence intervals using ROC cutoff. Do you notice any differences?
+Using code from earlier in the lab, and the sample data (not control!) for pfAMA1, compute the seroprevalence and 95% confidence intervals using ROC cutoff. Do you notice any differences?
 
 ```{r exercise3}
 
@@ -311,15 +427,18 @@ ggplot() +
   d. Test to see what number of components is the best fit for your data. Remember, FMM might not be an appropriate approach if 2 components is not the best fit for your data.
 ```{r number_components}
 
-# Step 1: Fit BIC values for G = 1 to 4
+# Step 1: Estimate BIC values for G = 1 to 4 components
 bic_values <- mclustBIC(log_antigen_vector, modelNames = "V", G = 1:4)
 
 # Step 2: Extract BIC values into a data frame
-bic_df <- as.data.frame(bic_values)
-bic_df$G <- as.numeric(rownames(bic_df))
+bic_df <- as.data.frame(bic_values[,1])
+bic_df$G <- as.numeric(rownames(bic_df)) # G is the column for number of components
+names(bic_df) <- c("BIC", "G") # Label column names
 
-# Step 3: Find best model based on highest BIC
-best_index <- which.max(bic_df$x)  # V is the column for model "V"
+# Step 3: Find best model based on max BIC value as derived from the mclust package
+# Note that this package calculates a transformed BIC value; typically a model of best fit would have the lowest BIC value
+plot(bic_values)
+best_index <- which.max(bic_df$BIC) 
 
 cat("Best number of components based on BIC:", best_index, "\n")
 
