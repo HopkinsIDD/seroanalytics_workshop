@@ -162,7 +162,17 @@ getwd()
 
 ```
 
-If this directory is not the one we want, we need to re-set. There are many ways to do this, we will share one way.
+If getwd() is not showing the correct file path, then one way to set the directory is to use the setwd() function as shown below. Here, we show an example of setting the working directory to the location where the *seroanalytics_workshop* folder is stored. You will need to replace the below *my_path* with the exact file path of your *seroanalytics_workshop* folder and the folder from which you will be loading files on your computer. In this case, we will be reading in files from the *seroanalytics_workshop/Data/* folder.
+
+```{r,message=F, warning=F, results="hide", eval=F}
+
+# my_path <- "~/seroanalytics_workshop/Data/"
+# setwd(my_path)
+
+```
+
+
+Another way to correctly set your working directory (if getwd() is not showing the directory we want), is to do the following:
 
 1. Go to "Session" in the uppermost menu bar
 2. Go to "Set Working Directory"
@@ -175,9 +185,12 @@ You must set your working directory every time you open an new Rstudio session, 
 Now, that we have the correct working directory, we can read in one dataset that we will work with for the introductory lab using the "read.csv" function. These data are a set of meta data variables (age, sex) that link to the individual IDs from our training serosurvey dataset. 
 
 ```{r,message=F, warning=F}
-#this code reads in data
+#this code reads in data from the set working directory
 
 meta_data <- read.csv("Training demographics df.csv")
+
+#another way to read in this file is to use the my_path location of the working directory (as shown in Line 169) and paste it in front of the file name
+# meta_data <- read.csv(paste0(my_path,"Training demographics df.csv"))
 
 ```
 
@@ -462,7 +475,7 @@ Now let's cover what a package is. A package in R is a collection of functions, 
 
 First, let's install the following packages. You only need to install packages once (with the install.packages function), but they need to be loaded each time you start R to use them.
 
-```{r install_packages, warning=FALSE, results=FALSE, message=FALSE}
+```{r install_packages, warning=FALSE, results=FALSE, message=FALSE, eval=FALSE}
 
 #install packages that will be needed; the install.packages() function can be used
 install.packages("ggplot2")
@@ -474,8 +487,8 @@ install.packages("pROC")
 install.packages("mclust")
 install.packages("devtools")
 
-#install the flexfit package 
-#to use the devtools package and install the flexfit package accurately you need to have R version 4.0 or higher 
+#install the flexfit package
+#to use the devtools package and install the flexfit package accurately you need to have R version 4.0 or higher
 #this package is not on CRAN so we instead install it from github (using the install_github function). This function is in the devtools package, so we first load devtools (using the library function)
 library(devtools)
 install_github("EPPIcenter/flexfit")
@@ -484,7 +497,7 @@ install_github("EPPIcenter/flexfit")
 
 Next, we can load the other packages we've installed using the library function
 
-```{r load_packages}
+```{r load_packages, message=F, warning=F}
 
 #the library function loads each package
 library(ggplot2)
