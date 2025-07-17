@@ -166,7 +166,7 @@ If getwd() is not showing the correct file path, then one way to set the directo
 
 ```{r,message=F, warning=F, results="hide", eval=F}
 
-# my_path <- "~/seroanalytics_workshop/Data/"
+# my_path <- "~/seroanalytics_workshop/"
 # setwd(my_path)
 
 ```
@@ -186,11 +186,13 @@ Now, that we have the correct working directory, we can read in one dataset that
 
 ```{r,message=F, warning=F}
 #this code reads in data from the set working directory
-
-meta_data <- read.csv("Training demographics df.csv")
+# meta_data <- read.csv("Training demographics df.csv")
 
 #another way to read in this file is to use the my_path location of the working directory (as shown in Line 169) and paste it in front of the file name
-# meta_data <- read.csv(paste0(my_path,"Training demographics df.csv"))
+#this is generally the best way to read in data in Rmd files
+
+meta_data <- read.csv(paste(my_path,"Data/Training demographics df.csv"), sep="/")
+
 
 ```
 
@@ -431,7 +433,7 @@ Sometimes merging datasets is useful so that we can connect the meta data like a
 ```{r,message=F, warning=F}
 
 #this code reads in data
-sero_data <- read.csv("Training serostatus df.csv")
+sero_data <- read.csv(paste(my_path,"Data/Training serostatus df.csv"), sep="/")
 
 #let's make the serostatus variables characters
 sero_data$CHIKV_serostatus<-as.character(sero_data$CHIKV_serostatus)
@@ -615,7 +617,7 @@ The below example R script (my_script.R) defines the square() function: square <
 #square(4)
 
 #execute the my_script.R file using the source() function
-source("my_script.R")
+source(paste(my_path,"Source/my_script.R"), sep="/")
 
 #try to use the square function now
 square(4)
