@@ -40,9 +40,9 @@ We recommend going through the files listed in the order below. We also recommen
 - Lab 6 (pdf and Rmd versions)
   - R code to implement the serocatalytic model, infer timing and magnitude of past outbreaks, and estimate force of infection
 
+**Data: Data sets used throughout this course**
+
 **Source: General R functions and code used throughout this course**
-- my_script.R
-- utils.R
 
 **Extra Lectures: Serodynamics and longitudinal analyses**
 - Serodynamics review (pptx and pdf versions)
