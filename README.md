@@ -1,6 +1,6 @@
 **Guide to the Seroanalytic Workshop files**
 
-The following material is a training resource for learning seroanalytical methods, from understanding and pre-processing serological data to inferring transmission dynamics. The material consists of both lectures and labs and can be followed at your own pace. To execute the code from the labs, you will need to have R, and preferably RStudio, installed on your computer before starting.
+The following material is a training resource for learning seroanalytical methods, from understanding and pre-processing serological data to inferring transmission dynamics. The material consists of both lectures and labs, and can be followed at your own pace. To execute the code in the labs, you will need to have R, and preferably RStudio, installed on your computer before starting.
 
 We recommend going through the files listed in the order below. We also recommend downloading the entire repository to your computer and creating a directory with the same name *seroanalytics_workshop*, as some of the R scripts will call data and code files assuming they are saved in similarly named folders. Please find a description of the course material files below.
 
@@ -18,9 +18,9 @@ We recommend going through the files listed in the order below. We also recommen
 
 **Part 3: Pre-processing serological data**
 - Lecture 3 (pptx and pdf versions)
-  - A description of what is pre-processing, how to measure whether pre-processing is effective, and a pipeline for pre-processing data
+  - A description of what is pre-processing, how to identify whether pre-processing has been effective, and a pipeline for pre-processing data
 - Lab 3 (pdf and Rmd versions)
-  - R code to implement a pre-processing pipeline 
+  - R code to implement a pre-processing pipeline
 
 **Part 4: Visualizing and standardizing serological data**
 - Lecture 4 (pptx and pdf versions)
@@ -32,7 +32,7 @@ We recommend going through the files listed in the order below. We also recommen
 - Lecture 5 (pptx and pdf versions)
   - Considerations for binarizing serological data, determining serostatus, and estimating seroprevalence
 - Lab 5 (pdf and Rmd versions)
-  - R code to binarize to determine serostatus and estimate seroprevalence   
+  - R code to binarize data to determine serostatus and estimate seroprevalence   
 
 **Part 6: Inferring transmission dynamics from seroprevalence data**
 - Lecture 6 (pptx and pdf versions)
