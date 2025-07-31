@@ -41,7 +41,7 @@ We recommend going through the files listed in the order below. We also recommen
   - R code to implement the serocatalytic model, infer timing and magnitude of past outbreaks, and estimate force of infection
 
 **Data: Data sets used throughout this course**
-- Information about datasets.docx
+- Summarized in Information about datasets.docx
 
 **Source: General R functions and code used throughout this course**
 
