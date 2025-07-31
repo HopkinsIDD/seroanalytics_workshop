@@ -2,7 +2,7 @@
 
 The following material is a training resource for learning seroanalytical methods, from understanding and pre-processing serological data to inferring transmission dynamics. The material consists of both lectures and labs, and can be followed at your own pace. To execute the code in the labs, you will need to have R, and preferably RStudio, installed on your computer before starting.
 
-We recommend going through the files listed in the order below. We also recommend downloading the entire repository to your computer and creating a directory with the same name *seroanalytics_workshop*, as some of the R scripts will call data and code files assuming they are saved in similarly named folders. Please find a description of the course material files below.
+We recommend going through the files listed in the order below. We also recommend downloading the entire repository to your computer and creating a directory with the same name of *seroanalytics_workshop*, as some of the R scripts will call data and code files assuming they are saved in similarly named folders. Please find a description of the course material files below.
 
 **Part 1: Introduction to the Seroanalytics Workshop**
 - Lecture 1 (pptx and pdf versions)
