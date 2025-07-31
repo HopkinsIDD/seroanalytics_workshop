@@ -41,6 +41,7 @@ We recommend going through the files listed in the order below. We also recommen
   - R code to implement the serocatalytic model, infer timing and magnitude of past outbreaks, and estimate force of infection
 
 **Data: Data sets used throughout this course**
+- Information about datasets.docx
 
 **Source: General R functions and code used throughout this course**
 
@@ -51,5 +52,4 @@ We recommend going through the files listed in the order below. We also recommen
   - Review on using longitudinal serological data to evaluate antibody kinetics and the value of analyzing quantitative titers
 
 **Projects: Guided worksheets to aid research question and analytic plan development** 
-
 These worksheets can be applied to your own serosurveillance data and can be completed concurrently with the above lectures and labs.
