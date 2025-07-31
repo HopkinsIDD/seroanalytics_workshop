@@ -51,5 +51,6 @@ We recommend going through the files listed in the order below. We also recommen
 - Longitudinal serological analyses (pptx and pdf versions)
   - Review on using longitudinal serological data to evaluate antibody kinetics and the value of analyzing quantitative titers
 
-**Projects: Guided worksheets to aid research question and analytic plan development** 
+**Projects: Guided worksheets to aid research question and analytic plan development**
+
 These worksheets can be applied to your own serosurveillance data and can be completed concurrently with the above lectures and labs.
