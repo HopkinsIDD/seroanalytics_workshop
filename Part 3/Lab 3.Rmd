@@ -8,16 +8,16 @@ date: "2025-05-22"
 
 The purpose of this document is to provide an introduction to pre-processing your serological data. In general, pre-processing can be thought of as a series of steps that transform raw data (data directly from the scanner or imager in the lab) into data that can be used to do analysis and make inferences. After working through this lab exercise you should be able to:
 
-* Understand how to read in raw data from a scanner or imager
-* Filter the data using bead count
-* Remove background signal from your fluorescence readings
-* Visualize standard curves and where your cohort samples fall relative to these
-* Fit a standard curve and estimate sample concentrations using this standard curve
-* Estimate and remove plate-to-plate effects using a linear model
+-   Understand how to read in raw data from a scanner or imager
+-   Filter the data using bead count
+-   Remove background signal from your fluorescence readings
+-   Visualize standard curves and where your cohort samples fall relative to these
+-   Fit a standard curve and estimate sample concentrations using this standard curve
+-   Estimate and remove plate-to-plate effects using a linear model
 
 # Review: General Housekeeping
 
-Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of Rstudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the Data folder within the seroanalytics_workshop folder. Alternatively, you can modify the code below as appropriate for your files to get to the Data folder in the seroanalytics_workshop folder. 
+Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of RStudio, and choosing "Set Working Directory" --\> "Choose Directory" and using your file browser to navigate to the `Data` folder within the `seroanalytics_workshop` folder. Alternatively, you can modify the code below as appropriate for your files to get to the `Data` folder in the `seroanalytics_workshop` folder.
 
 ```{r Setup}
 
@@ -31,29 +31,26 @@ source(paste(my_path, "Source/utils.R", sep="/"))
 
 ```
 
-
 # Read In Files
 
-We will begin by defining the plate setup as we did in Lab 1. This includes antigen names, the names of control and blank or background wells, the standard curve sample names, dilution values and locations on plates as well as replicate values if there happens to be more than one standard curve on each plate. 
+We will begin by defining the plate setup as we did in Lab 2b. This includes antigen names, the names of control and blank or background wells, the standard curve sample names, dilution values and locations on plates, as well as replicate values if there happens to be more than one standard curve on each plate.
 
 ```{r plateSetup}
 
- 
   agx_names <- c("SNAP",	"WNV",	"YF",	"JE3",	"ZIKA",	"DENV",	"CHIKV",	"GLURPR2",	"CSP",	"PfAMA1",	"PfMSP119",	"WRUV",	"WMEV")
 
   ctrls <- c("POS1", "POS2", "NEG1", "NEG2")
+  
   bg_samples <- c("BLANK1", "BLANK2")
  #note that here we only have 1 standard curve per plate so the replicates all have value 1. 
   standard_curve_df= data.frame(Sample= paste0("P", 1:8),
-                                  Dilution= c(1/100, 1/200, 1/400, 1/800, 1/1600, 1/3200, 1/6400, 1/12800),
-                              Location= c("65(1,A9)", "66(1,B9)", "67(1,C9)", "68(1,D9)", "69(1,E9)", "70(1,F9)", "71(1,G9)", "72(1,H9)"),
-                              Replicate= rep(1, 8))
-  
-    
+                                Dilution= c(1/100, 1/200, 1/400, 1/800, 1/1600, 1/3200, 1/6400, 1/12800),
+                                Location= c("65(1,A9)", "66(1,B9)", "67(1,C9)", "68(1,D9)", "69(1,E9)", "70(1,F9)", "71(1,G9)", "72(1,H9)"),
+                                Replicate= rep(1, 8))
  
 ```
 
-Now, we can use the read and tidy function from Lab 1 to read in our 4 example plates in the Data folder. 
+Now, we can use the `read_and_tidy()` function from Lab 2b to read in our 4 example plates in the `Data` folder.
 
 ```{r plateReadIn}
 plate_1_tidy<-read_and_tidy(
@@ -98,7 +95,8 @@ plate_4_tidy<-read_and_tidy(
 
 ```
 
-Now we can perform some basic checks on each plate using the head functions and some summaries. 
+Now we can perform some basic checks on each plate using the `head()` functions and some summaries.
+
 ```{r plateCheck}
 #head function to ensure the structure is correct
 head(plate_1_tidy)
@@ -119,19 +117,20 @@ plate_1_sampleSummary
 #What happens if you divide the number within each sample category by the number of different antigens? 
 #repeat this for all 4 plates
 ```
+
 *Exercise 1:*
 
-Use the code above to accomplish the same task with your data. First ensure that your data (.csv files) are in the appropriate folder (we suggest saving them to the Data folder in the seroanalytics_workshop directory). Be sure to also input the appropriate values into the read and tidy function, e.g. you likely will not have the same antigen names or names for the blank, control, and standard curve samples as the example data. Be sure to use all values that are specific to your data set.
+Use the code above to accomplish the same task with your data. First ensure that your data (`.csv` files) are in the appropriate folder (we suggest saving them to the `Data` folder in the `seroanalytics_workshop` directory). Be sure to also input the appropriate values into the `read_and_tidy()` function, e.g., you likely will not have the same antigen names or names for the blank, control, and standard curve samples as the example data. Be sure to use all values that are specific to your data set.
 
 ```{r exercise1}
 
 
 ```
- 
 
 # Filtering
 
-Now that we have read in our raw data, we can filter out data that falls below our minimum bead count threshold using the filter low beads function as follows: 
+Now that we have read in our raw data, we can filter out data that falls below our minimum bead count threshold using the `filter_low_beads()` function as follows:
+
 ```{r Filter}
 #note we are assigning the filtered output to a new object with a new name, we want to be able to see each stage of our pipeline separately, so we want to avoid overwriting objects as we go. 
 
@@ -154,7 +153,7 @@ summary(as.factor(plate_1_tidy$Low_Beads))
 
 *Exercise 2:*
 
-Use the code above to accomplish the same task with your data. Make sure to perform adequate checks as shown above on all your plates to be sure the filter function removed only what you expected.
+Use the code above to accomplish the same task with your data. Make sure to perform adequate checks, as shown above, on all your plates to be sure the `filter_low_beads()` function removed only what you expected.
 
 ```{r exercise2}
 
@@ -163,7 +162,7 @@ Use the code above to accomplish the same task with your data. Make sure to perf
 
 # Background Removal
 
-Now that we have a filtered data set, we can remove background using the blank wells on each plate. Note, there are different ways one can consider removing background, today we will focus only on removing background using subtraction. In other words, we will subtract our estimate of background signal from each MFI value as follows: 
+Now that we have a filtered data set, we can remove background using the blank wells on each plate. Note, there are different ways one can consider removing background, today we will focus only on removing background using subtraction. In other words, we will subtract our estimate of background signal from each MFI value as follows:
 
 ```{r Background}
 #note we signal that we want to use the subtraction method using the "method" argument of the function
@@ -183,17 +182,16 @@ head(plate_1_bg)
 
 *Exercise 3:*
 
-Use the code above to accomplish the same task with your data. Make sure to perform adequate checks as shown above on all your plates to be sure the background removal function produced the desired results.
+Use the code above to accomplish the same task with your data. Make sure to perform adequate checks, as shown above, on all your plates to be sure the `rm_background()` function produced the desired results.
 
 ```{r exercise3}
 
 
 ```
 
-
 # Standard Curves (Standardization)
 
-First, we will visualize the standard curves in our example data set with raw MFI values as inputs. 
+First, we will visualize the standard curves in our example data set with raw MFI values as inputs.
 
 ```{r stdCurveVis}
 #this function makes use of the standard curve information that first appeared in the plateSetup section above.  
@@ -210,8 +208,7 @@ plate_1_stdCurve[[1]]
 
 ```
 
-
-Now, we will visualize the standard curves in our example data set with background subtracted MFI values as inputs. 
+Now, we will visualize the standard curves in our example data set with background subtracted MFI values as inputs.
 
 ```{r stdCurveVisBG}
  
@@ -229,16 +226,14 @@ plate_1_stdCurve_BG[[1]]
 
 *Exercise 4:*
 
-Use the code above to accomplish the same task with your data. Make sure to use the correct inputs for standard curves relative to what is on your plates. 
-
-
+Use the code above to accomplish the same task with your data. Make sure to use the correct inputs for standard curves relative to what is on your plates.
 
 ```{r exercise4}
 
 
 ```
 
-Now, we will choose some antigens to fit our standard curves to each antigen (all but measles and rubella). By fitting our standard curves, we use a model to describe the relationship between log dilution and MFI (for now we will only consider MFI on the raw scale not the background subtracted scale). Using this relationship we will estimate the dilution of samples in our data using the MFIs of each sample. 
+Now, we will choose some antigens to fit our standard curves to each antigen (all but measles and rubella). By fitting our standard curves, we use a model to describe the relationship between log dilution and MFI (for now, we will only consider MFI on the raw scale, not the background subtracted scale). Using this relationship, we will estimate the dilution (or concentration) of samples in our data using the MFIs of each sample.
 
 ```{r stdCurveFit}
 #first remove measles and rubella samples
@@ -263,14 +258,14 @@ plate_3_standard<- get_concentration_FlexFit(plate_3_bg_noMEVnoRUV, std_curve_va
 plate_4_standard<- get_concentration_FlexFit(plate_4_bg_noMEVnoRUV, std_curve_values = standard_curve_df, input="MFI")
 
 
-#now check what plate_1_standard looks like first use the head function: 
+#now check what plate_1_standard looks like first use the head() function: 
 head(plate_1_standard) 
 #which new columns have been added? 
 
 #look for NA values in estimated concentration, these can occur when the samples are beyond the upper or lower limits of the standard curve which we visualized using the plots above. 
 summary(plate_1_standard$Log_Conc_bg)
 
-#in particular, lets check if certain types of samples (e.g. controls) have NA output from this step? 
+#in particular, let's check if certain types of samples (e.g., controls) have NA output from this step.
 summary(plate_1_standard$Log_Conc_bg[which(plate_1_standard$Sample_Type=="Ctrl")])
 
 #Now repeat this for all example plates (2-4)
@@ -280,20 +275,16 @@ summary(plate_1_standard$Log_Conc_bg[which(plate_1_standard$Sample_Type=="Ctrl")
 
 *Exercise 5:*
 
-Use the code above to accomplish the same task with your data. Make sure to use the correct inputs for standard curves relative to what is on your plates and to filter out certain antigens if there is no standard curve for those antigens in your data.  
-
-
+Use the code above to accomplish the same task with your data. Make sure to use the correct inputs for standard curves relative to what is on your plates, and to filter out certain antigens if there is no standard curve for those antigens in your data.
 
 ```{r exercise5}
 
 
 ```
 
-
 # Normalization (Plate Effects)
 
 Now, we will perform normalization by estimating batch effects between plates and then subtracting those batch effects from all MFIs.
-
 
 ```{r normalize}
 #first bind all 4 standardized plates together into 1 data frame
@@ -318,12 +309,9 @@ summary(normalized_df$Norm_MFI)
 
 ```
 
-
 *Exercise 6:*
 
-Use the code above to accomplish the same task with your data. Make sure to bind all plates together into one data frame.  
-
-
+Use the code above to accomplish the same task with your data. Make sure to bind all plates together into one data frame.
 
 ```{r exercise6}
 
