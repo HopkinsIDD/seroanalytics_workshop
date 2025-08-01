@@ -6,15 +6,15 @@ date: "2025-05-22"
 
 
 # Introduction
-The purpose of this document is to compute a threshold of serostatus when there is not an external threshold like there was with measles. This document describes how to use control samples with known prior exposure status to a pathogen (positive or never exposed is usually the case) to establish a threshold then describes how to calculate important performance metrics of this threshold (e.g. sensitivity and specificity). Upon completing this document you will be able to: 
+The purpose of this document is to compute a threshold of serostatus when there is not an external threshold, like there was for measles in Lab 4. This document describes how to use control samples with known prior exposure status to a pathogen (i.e., positive or negative) to establish a threshold, then describes how to calculate test performance characteristics of this threshold (i.e., sensitivity and specificity). Upon completing this document, you will be able to: 
 
-* Identify a threshold of seropositivity using well characterized control samples using negative controls, or using positive and negative controls together. 
+* Identify a threshold of seropositivity using well-characterized control samples (negative controls only, or positive and negative controls together). 
 * Characterize the sensitivity and specificity of this threshold. 
 
 
 # General housekeeping
 
-Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of Rstudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the Data folder within the seroanalytics_workshop folder. Alternatively, you can modify the code below as appropriate for your files to get to the Data folder in the seroanalytics_workshop folder. 
+Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of Rstudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the `Data` folder within the `seroanalytics_workshop` folder. Alternatively, you can modify the code below as appropriate for your files to get to the `Data` folder in the `seroanalytics_workshop` folder. 
 
 ```{r Setup}
 
@@ -29,11 +29,12 @@ source(paste(my_path, "Source/utils.R", sep="/"))
 
 # Reading in data 
 
-Note this is the same procedure as in lab 3 and lab 4.
+Note this is the same procedure as in Lab 3 and Lab 4.
+
 ```{r reading_in_data}
 
-
 control_data <- read.csv(paste(my_path, "Data/simulated_control_long_training_data.csv", sep="/"))
+
 sample_data <- read.csv(paste(my_path, "Data/simulated_sample_wide_training_data.csv", sep="/"))
 
 #this converts sample_data from a wide to a long dataframe. edit the column names to your data.
@@ -48,26 +49,23 @@ sample_long <- reshape(
 )
 rownames(sample_long) <- NULL
 
-
 ```
-
-
 
 # Choosing a cutoff based on negative controls.
 
-We begin by focusing on PfAMA1 responses in this section, feel free to explore other antigens after you have completed these steps. 
+We begin by focusing on PfAMA1 responses in this section. Feel free to explore other antigens after you have completed these steps. 
 
-We will begin by exploring the distribution of the negative controls. One way to determine a cutoff is to consider samples above distribution of negative controls to be positive. This can be particularly useful for long lasting markers of prior exposure that do not show signs of waning, as is the case for PfAMA1 (long lasting marker of prior malaria exposure). There are several ways one can consider the distribution of negative controls. The simplest way is to assign every sample that has a higher MFI value than the highest negative control to be positive. We can begin with this method. 
+We will begin by exploring the distribution of the negative controls. One way to determine a cutoff is to consider samples above the distribution of negative controls to be positive. This can be particularly useful for long-asting markers of prior exposure that do not show signs of waning, as is the case for PfAMA1 (i.e., a long-lasting marker of prior malaria exposure). There are several ways one can consider the distribution of negative controls. The simplest way is to assign every sample that has a higher MFI value than the highest negative control to be positive. We can begin with this method. 
 
-First, we can visuzlise the distribution of negative controls. 
+First, we can visualise the distribution of negative controls. 
   
 ```{r histogram_neg_controls}
 
-    #restrict to negative controls
-    control_negs <- control_data[control_data$pos_neg=="negative",] #edit this line if needed
+#restrict to negative controls
+control_negs <- control_data[control_data$pos_neg=="negative",] #edit this line if needed
 
-    #check distributions of data - untransformed
-    neg_controls_natural_scale <- ggplot(control_negs, aes(x = mfi)) +
+#check distributions of data - untransformed
+neg_controls_natural_scale <- ggplot(control_negs, aes(x = mfi)) +
       geom_histogram(bins = 10, color = "black", fill = "blue") +
       facet_wrap(~ antigen, scales = "free", ncol = 4) +  # <- Set 5 columns per row
       labs(
@@ -97,10 +95,11 @@ First, we can visuzlise the distribution of negative controls.
         axis.text = element_text(size = 10),  # Smaller font for axis text
         plot.title = element_text(size = 10)  # Smaller font for the plot title
       )
-    neg_controls_log_scale
+
+neg_controls_log_scale
 ```
 
-Now we can identify the cutoff as being the highest negative control. 
+Now, we can identify the cutoff as being the MFI value of the highest negative control. 
   
 ```{r highestNeg}
 
@@ -108,14 +107,14 @@ highestNeg_cutoff<- max(control_negs$mfi[which(control_negs$antigen=="PfAMA1")])
  
 ```
 
-Now, we might want to understand how good our cutoff is, one way to assess this is to compute the sensitivity and specificity under this cutoff. Recall, sensitivity is the proportion of true positives that are accurately classified as positive, and specificity is the proportion of true negatives that are accurately classified as negative. Note, we are able to calculate this because we have both positive and negative control samples, this may not always be the case. 
+Now, we might want to understand how "good" our cutoff is: one way to assess this is to compute the sensitivity and specificity under this cutoff. Recall, sensitivity is the proportion of true positives that are accurately classified as positive, and specificity is the proportion of true negatives that are accurately classified as negative. Note, we are able to calculate this because we have both positive and negative control samples; this may not always be the case. 
 
 ```{r highestNegSensSpec}
 #compute serostatus using the highest negative value
 control_data_ama1<- control_data[which(control_data$antigen=="PfAMA1"),]
 serostatus_highNeg<- ifelse(control_data_ama1$mfi>highestNeg_cutoff, 1, 0)
 
-#add this serostatus variable to our original control dataset for pfAMA1
+#add this serostatus variable to our original control dataset for PfAMA1
 control_data_ama1WithSerostatus<- cbind(control_data_ama1,serostatus_highNeg)
 
 #compute sensitivity
@@ -124,15 +123,13 @@ sens_ama1_highestNeg<- length(which(control_data_ama1WithSerostatus$pos_neg=="po
 sens_ama1_highestNeg
 
 #compute specificity
-
 spec_ama1_highestNeg<- length(which(control_data_ama1WithSerostatus$pos_neg=="negative"&control_data_ama1WithSerostatus$serostatus_highNeg==0))/length(which(control_data_ama1WithSerostatus$pos_neg=="negative"))
 
 spec_ama1_highestNeg
 
-
 ```
 
-Another common method that only relies on negative controls is to use a fixed number of standard deviations above the mean of the negative controls to establish a cutoff. In this example we choose 3 standard deviations above the mean of the negative controls. Note here, we will work on the log scale. We will check the same test metrics for this cutoff. 
+Another common method that only relies on negative controls is to use a fixed number of standard deviations above the mean of the negative controls to establish a cutoff. In this example, we choose 3 standard deviations above the mean of the negative controls. Note here, we will work on the log scale. We will calculate the same test performance characteristics for this cutoff. 
 
 ```{r 3SD}
 #calculate the cutoff
@@ -140,8 +137,6 @@ mean3sd_cutoff<- mean(log(control_data_ama1$mfi[which(control_data_ama1$pos_neg=
 
 #calculate serostatus
 serostatus_mean3SD<- ifelse(log(control_data_ama1$mfi)>mean3sd_cutoff, 1, 0)
-
-
 
 #add this serostatus variable to our original control dataset for pfAMA1
 control_data_ama1WithSerostatus<- cbind(control_data_ama1WithSerostatus,serostatus_mean3SD)
@@ -152,11 +147,9 @@ sens_ama1_mean3sd<- length(which(control_data_ama1WithSerostatus$pos_neg=="posit
 sens_ama1_mean3sd
 
 #compute specificity
-
 spec_ama1_mean3sd<- length(which(control_data_ama1WithSerostatus$pos_neg=="negative"&control_data_ama1WithSerostatus$serostatus_mean3SD==0))/length(which(control_data_ama1WithSerostatus$pos_neg=="negative"))
 
 spec_ama1_mean3sd
-
 
 ```
 
@@ -165,12 +158,13 @@ What do you notice about the sensitivity and specificity when comparing these tw
   
 *Exercise 2:*
 
-Using code below, and the sample data (not control!) for pfAMA1, compute the seroprevalence and 95% confidence intervals using the highest negative cutoff, and then adapt the code to use the mean plus 3SD cutoff. Do you notice any differences?
+Using code below, and the sample data (not control!) for PfAMA1, compute the seroprevalence and 95% confidence intervals using the highest negative cutoff, and then adapt the code to use the mean plus 3SD cutoff. Do you notice any differences?
 
 ```{r exercise2}
 #Applying cutoff:
-  #ifelse function, if first statement is true, then outcome is set to 1, and if first statemnet is false, then outcome is 0
-  #since the first statement is a vector, then outcome will be a vector of 1's and 0's.
+
+#ifelse function, if first statement is true, then outcome is set to 1, and if first statemnet is false, then outcome is 0
+#since the first statement is a vector, then outcome will be a vector of 1's and 0's.
 seropositivity <- ifelse(sample_data$PfAMA1 > highestNeg_cutoff, 1, 0) #1 indicates seropositive, and 0 indicates seronegative
 
 #number of people seropositve and seronegative  
@@ -181,49 +175,47 @@ table(seropositivity,useNA="always")
 cat("Table of percent seronegative and seronegative", "\n")
 round(prop.table(table(seropositivity,useNA="always")),3)*100
 
-# Set your parameters
-  x <- 531 #number seropositive. Get the number seropositive in your sample from the seropositive table above
-  n <- nrow(sample_data) #total number of samples in your data, note in these data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this cound.
-  conf <- 0.95 #confidence interval. 95% is a standard CI but you can adjust this if you want
+# Set up to calculate the confidence interval
+x <- 531 #number seropositive. Get the number seropositive in your sample from the seropositive table above
+
+n <- nrow(sample_data) #total number of samples in your data, note in these data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this cound.
+
+conf <- 0.95 #confidence interval. 95% is a standard CI but you can adjust this if you want
   
-  # Exact interval
-  ci <- binom.exact(x, n, conf.level = conf) #epitools function
-  #
-  cat("CI lower", round(ci$lower,4)*100, "%, CI upper", round(ci$upper,4)*100, "%")
+# Exact interval
+ci <- binom.exact(x, n, conf.level = conf) #epitools function
+
+cat("CI lower", round(ci$lower,4)*100, "%, CI upper", round(ci$upper,4)*100, "%")
 
 ```
 
-Now we will use the positive and negative controls jointly to come up with a cutoff that seeks to maximize both sensitivity and specificity.First we will plot an ROC curve, this curve describes the relationship between sensitivity and specificity. 
+Now we will use the positive and negative controls jointly to come up with a cutoff that seeks to maximize both sensitivity and specificity. First we will plot an ROC curve: this curve describes the relationship between sensitivity and specificity. 
 
-In general the ROC fixes a threshold for seropositivity and then computes sensitivity and specificity under that threshold. Then the method repeats this process for a different threshold, and explores a wide range of thresholds (in our case from -11.5 to 58767 MFI). In general for very low MFI thresholds, specificity is high, but sensitivity is low, but as the threshold increases specificity increases. However, at a certain level of threshold specificity starts to decrease. 
+The ROC fixes a threshold for seropositivity and then computes sensitivity and specificity under that threshold. Then the method repeats this process for a different threshold, and explores the entire range of possible thresholds (in our case from -11.5 to 58767 MFI). 
 
 ```{r generate_roc_curve}
+
 #this fits the ROC curve
 rocFit<- roc(response = control_data_ama1$pos_neg,
                predictor = control_data_ama1$mfi)
+
 #look at the output
-
 rocFit
-
 plot(rocFit)
-
-
 
 ```
 
-Commonly, we want to choose a threshold that maximizes both sensitivity and specificity. This is a quantity known as youden's J. Formally we want to choose the threshold for which the equation sensitivity+specificity-1 has the largest possible value. We will identify the optimal threshold under these conditions and compute sensitivity and specificity. 
+Commonly, we want to choose a threshold that jointly maximizes sensitivity and specificity. This is a quantity known as Youden's J. Formally, we want to choose the threshold for which the equation `sensitivity+specificity-1` has the largest possible value. We will identify the optimal threshold under these conditions and compute sensitivity and specificity. 
   
 ```{r apply_roc_cutoff}
 #first we compute all possible values of this under the different thresholds of the ROC
 indices<- rocFit$sensitivities+rocFit$specificities-1
 
-ROCThreshold= rocFit$thresholds[which(indices==max(indices))][1]
+ROCThreshold<- rocFit$thresholds[which(indices==max(indices))][1]
 
 serostatus_ROC<- ifelse(control_data_ama1$mfi>ROCThreshold, 1, 0)
 
-
-
-#add this serostatus variable to our original control dataset for pfAMA1
+#add this serostatus variable to our original control dataset for PfAMA1
 control_data_ama1WithSerostatus<- cbind(control_data_ama1WithSerostatus,serostatus_ROC)
 
 #compute sensitivity
@@ -232,7 +224,6 @@ sens_ama1_ROC<- length(which(control_data_ama1WithSerostatus$pos_neg=="positive"
 sens_ama1_ROC
 
 #compute specificity
-
 spec_ama1_ROC<- length(which(control_data_ama1WithSerostatus$pos_neg=="negative"&control_data_ama1WithSerostatus$serostatus_ROC==0))/length(which(control_data_ama1WithSerostatus$pos_neg=="negative"))
 
 spec_ama1_ROC
@@ -243,7 +234,7 @@ How do these outputs compare to those from the previous cutoffs?
 
 *Exercise 3:*
 
-Using code from earlier in the lab, and the sample data (not control!) for pfAMA1, compute the seroprevalence and 95% confidence intervals using ROC cutoff. Do you notice any differences?
+Using code from earlier in the lab, and the sample data (not control!) for PfAMA1, compute the seroprevalence and 95% confidence intervals using ROC cutoff. Do you notice any differences?
 
 ```{r exercise3}
 
@@ -251,9 +242,9 @@ Using code from earlier in the lab, and the sample data (not control!) for pfAMA
 
 # Optional
 
-If you want to apply a mixture model, answer the following questions
+If you want to apply a finite mixture model (FMM), answer the following questions:
 
-  a. Plot your sample values and consider if they have a good distribution to fit a mixture model.
+  a. Plot your sample values and consider if they visually have a "good" distribution to fit a mixture model.
 
 ```{r sample_histogram}
 
@@ -292,13 +283,15 @@ faceted_log_scale
 
 ```
 
-  b. Decide which antigen you want to test. Make a vector of your antigen values. If you want to do a log transformation, do so before putting data into the FMM. Use the following code to run the model with 2 components
+  b. Decide which antigen you want to fit the FMM to. Make a vector of your antigen values. If you want to do a log transformation, do so before putting data into the FMM. Use the following code to run the FMM model with 2 components:
   
 ```{r fit_fmm_model}
-  mfi_values <- sample_data$JE3 #fill in your own data here
-  log_antigen_vector <- log(mfi_values)
-  k <- 2 #number of components 
-  fmm_model <- Mclust(log_antigen_vector, G = k, modelNames = "V") 
+
+mfi_values <- sample_data$JE3 #fill in your own data here
+log_antigen_vector <- log(mfi_values)
+
+k <- 2 #number of components 
+fmm_model <- Mclust(log_antigen_vector, G = k, modelNames = "V") 
   
 ```
   
@@ -306,15 +299,15 @@ faceted_log_scale
   
 ```{r plot_fmm_components}
     
-  # Extract parameters
-  means <- fmm_model$parameters$mean
-  sds <- sqrt(fmm_model$parameters$variance$sigmasq)
-  props <- fmm_model$parameters$pro
+# Extract parameters
+means <- fmm_model$parameters$mean
+sds <- sqrt(fmm_model$parameters$variance$sigmasq)
+props <- fmm_model$parameters$pro
   
-  # Create density curves for each component
-  x_vals <- seq(min(log_antigen_vector), max(log_antigen_vector), length.out = 1000)
+# Create density curves for each component
+x_vals <- seq(min(log_antigen_vector), max(log_antigen_vector), length.out = 1000)
 
-  dens_df <- data.frame(
+dens_df <- data.frame(
   x = rep(x_vals, 2),
   density = c(
     dnorm(x_vals, mean = means[1], sd = sds[1]) * props[1],
@@ -335,6 +328,7 @@ ggplot() +
 ```
   
   d. Test to see what number of components is the best fit for your data. Remember, FMM might not be an appropriate approach if 2 components is not the best fit for your data.
+
 ```{r number_components}
 
 # Step 1: Estimate BIC values for G = 1 to 4 components
@@ -354,9 +348,9 @@ cat("Best number of components based on BIC:", best_index, "\n")
 
 ```
 
-  e. If in part d, the model indicates that 2 components is not the best fit for your model, remake the plot showing your sample data fitted with the correct number of components. Copy the code from parts b and c below and edit to run with the best number of components.
+  e. If in part d, the model indicates that 2 components is not the best fit for your model, remake the plot showing your sample data fitted with what was identified to be the optimal number of components. Copy the code from parts b and c below, and edit to run with this optimal number of components.
   
-  f. Based on 2 components, calculate seroprevalence using the code below. Remember, if 2 components is not the best fit for your data, then this estimate may not be valid
+  f. Based on 2 components, calculate seroprevalence using the code below. Remember, if 2 components were not identified to be the optimal fit for your data, then the interpretation of this seroprevalence estimate is challenging.
   
 ```{r}
 
@@ -366,9 +360,9 @@ cat("Best number of components based on BIC:", best_index, "\n")
 component_means <- fmm_model$parameters$mean
 seropositive_component <- which.max(component_means)
 
-# Step 4: Get the posterior probabilities for each sample
-posteriors <- fmm_model$z  #For each sample, this is the probability of the component being in the first component or second component
-seropositive_probs <- posteriors[, seropositive_component] #this pulls out just the probability of each sample being seropositive
+# Step 4: Get the predicted probabilities for each sample
+probabilities <- fmm_model$z  #For each sample, this is the probability of the component being in the first component or second component
+seropositive_probs <- probabilities[, seropositive_component] #this pulls out just the probability of each sample being seropositive
 
 # Step 5: Estimate seroprevalence
 estimated_seroprevalence <- mean(seropositive_probs) #the mean of all the probabilities will be equal to the overall population seroprevalence

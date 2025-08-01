@@ -19,7 +19,7 @@ library(epitools)
 ### 2. Read in our data
 
 You will need to change the "path" variable to the location of the files on your computer.
-In this lab we will focus on the DENV and CHIKV data which have already been classified as seropositive (1) or seronegative (0).
+In this lab we will focus on the DENV and CHIKV data, which have already been classified as seropositive (1) or seronegative (0).
 
 ```{r read in data}
 
@@ -37,7 +37,7 @@ head(df)
 
 To investigate the past transmission dynamics of these pathogens we first want to look at age-specific trends in seroprevalence. Here, we will calculate age-specific seroprevalence, based on the individual-level serostatus that has already been defined.
 
-Its important to check the age-distribution of the study population before deciding what age groups to use for analysis. This is to ensure that we choose age groups with a sufficient number of people. In general, the more age-groups we can use, the more information we can get about past transmission. However, if the number of study participants in a particular age group is too low, we will not be confident in the seroprevalence estimate (i.e. confidence intervals will be wide). If the sample sizes within an age-group are too small, wider age groupings should be used.
+Its important to check the age-distribution of the study population before deciding what age groups to use for analysis. This is to ensure that we choose age groups with a sufficient number of people. In general, the more age-groups we can use, the more information we can get about past transmission. However, if the number of study participants in a particular age group is too low, we will not be confident in the seroprevalence estimate (i.e., confidence intervals will be wide). If the sample sizes within an age-group are too small, wider age groupings should be used.
 
 ```{r seroprevalence, echo=FALSE}
 
@@ -105,11 +105,11 @@ ggplot(seroprev$DENV, aes(age_group, prev))+ geom_point()+ ggtitle("Dengue")+ yl
 
 ### 5. Estimating FOI (force of infection)
 
-We will now fit a catalytic model to the age-specific DENV seroprevalence data to estimate force of infection (FOI). We will do this using a generalized linear model (GLM) with a complementary log-log link. In this model we assume:
+We will now fit a serocatalytic model to the age-specific DENV seroprevalence data to estimate force of infection (FOI). We will do this using a generalized linear model (GLM) with a complementary log-log link. In this model we assume:
 
--   that FOI is constant over time (i.e. the result can be interpreted as the long-term average annual FOI)
+-   that FOI is constant over time (i.e., the result can be interpreted as the long-term average annual FOI)
 
--   that FOI does not vary with age (i.e. age does not impact the risk of infection)
+-   that FOI does not vary with age (i.e., age does not impact the risk of infection)
 
 ```{r FOI}
 
@@ -117,7 +117,7 @@ We will now fit a catalytic model to the age-specific DENV seroprevalence data t
 age_mid <- c(2, 7, 12, 17, 24.5, 34.5, 44.5, 54.5, 64.5, 74.5, 90)
 seroprev$DENV$age_mid <- age_mid
 
-# fit catalytic model
+# fit serocatalytic model
 mod <- glm(cbind(npos, n-npos) ~ 1, offset=log(age_mid), 
            data=seroprev$DENV, family = binomial(link = "cloglog"))
 
@@ -158,7 +158,7 @@ ggplot(seroprev$DENV, aes(age_group, prev))+ geom_point()+ ggtitle("Dengue")+ yl
 
 ### 6. FOI in urban vs rural locations
 
-In our dataset we know whether each study participant lives in a rural or urban location ("loc" variable in the data). Lets see if there are any differences in DENV FOI by location. We will apply the same code as before to calculate DENV age-specific seroprevalence (this time by urban/rural) and estimate FOI.
+In our dataset we know whether each study participant lives in a rural or urban location (`loc` variable in the data). Let's see if there are any differences in DENV FOI by location. We will apply the same code as before to calculate DENV age-specific seroprevalence (this time by urban/rural) and estimate FOI.
 
 -   Question: does DENV FOI vary significantly between urban and rural locations?
 
@@ -201,7 +201,7 @@ seroprevUR$urban$age_mid <- age_mid
 seroprevUR$rural$age_mid <- age_mid
 
 
-# fit catalytic model for each location
+# fit serocatalytic model for each location
 modU <- glm(cbind(npos, n-npos) ~ 1, offset=log(age_mid), 
            data=seroprevUR$urban, family = binomial(link = "cloglog")) # urban model
 

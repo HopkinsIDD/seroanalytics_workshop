@@ -150,7 +150,7 @@ faceted_log_scale
 
 3. Some antigens have an established standard cutoff (e.g., based on a correlate of protection). For example, for Measles (wmev antigen), a cutoff value typically used on Luminex is 153 IU/mL. Therefore, those samples at or above 153 IU/mL are seropositive and thought to be protected from future measles infection, and those samples below 153 IU/mL are seronegative and thought to be not protected from future measles infection. 
 
-  a. For this antigen, plot the standard curve of IU/mL dilution by MFI for the 4 plates with raw data, and add a vertical line showing the cutoff. Add a rug plot to show where the observed values fall on the y-axis (MFI values).
+a. For this antigen, plot the standard curve of IU/mL dilution by MFI for the 4 plates with raw data, and add a vertical line showing the cutoff. Add a rug plot to show where the observed values fall on the y-axis (MFI values).
   
 ```{r iu_mfi}
 
@@ -282,18 +282,17 @@ ggplot(std_wmev_plate1to4[which(std_wmev_plate1to4$dilution_iu_ml>23.4),]) +
   geom_vline(xintercept=153)
 
 ```
-  
-  
-   b. Apply cutoff. How many people are seropositive according to this cutoff, and what proportion of people are seropositive?
+
+b. Apply cutoff. How many people are seropositive according to this cutoff, and what proportion of people are seropositive?
   
 ```{r applying_cutoff}
 
 #Define cutoff based on IU/mL
 cutoff <- 153
 
-#Applying cutoff:
-  #ifelse function, if first statement is true, then outcome is set to 1, and if first statement is false, then outcome is 0
-  #since the first statement is a vector, then outcome will be a vector of 1's and 0's.
+#Applying this cutoff:
+#ifelse function, if first statement is true, then outcome is set to 1, and if first statement is false, then outcome is 0
+#since the first statement is a vector, then outcome will be a vector of 1's and 0's.
 seropositivity <- ifelse(data_final$meas_IU_mL >= cutoff, 1, 0) #1 indicates seropositive, and 0 indicates seronegative
 
 #number of people seropositive and seronegative
@@ -306,23 +305,25 @@ round(prop.table(table(seropositivity,useNA="always")),3)*100
 
 ```
   
-  c. Calculate the confidence interval for this seroprevalence
+c. Calculate the confidence interval for this seroprevalence
   
 ```{r seroprevalence_confidence_interval}
 
-  # Set your parameters
-  x <- 168 #number seropositive. Get the number seropositive in your sample from the seropositive table above
-  n <- nrow(data_final) #total number of samples in your data, note in these data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this count.
-  conf <- 0.95 #confidence interval. 95% is a standard CI but you can adjust this if you want
+# Set up to calculate the confidence interval
+x <- 168 #number seropositive. Get the number seropositive in your sample from the seropositive table above
 
-  # Exact interval
-  ci <- binom.exact(x, n, conf.level = conf) #epitools function
-  #
-  cat("CI lower", round(ci$lower,4)*100, "%, CI upper", round(ci$upper,4)*100, "%")
+n <- nrow(data_final) #total number of samples in your data, note in these data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this count.
+
+conf <- 0.95 #confidence interval. 95% is a standard CI but you can adjust this if you want
+
+# Exact interval
+ci <- binom.exact(x, n, conf.level = conf) #epitools function
+
+cat("CI lower", round(ci$lower,4)*100, "%, CI upper", round(ci$upper,4)*100, "%")
 
 ```
   
-  d. For this specific antigen, how would you interpret this seroprevalence and confidence interval? 
+d. For this specific antigen, how would you interpret this seroprevalence and confidence interval? 
   
-  e. What do you think about using this cutoff method for this antigen? What are the assumptions that went into this cutoff method?
+e. What do you think about using this cutoff method for this antigen? What are the assumptions that went into this cutoff method?
   
