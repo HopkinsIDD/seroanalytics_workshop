@@ -4,6 +4,14 @@ output: pdf_document
 date: "2025-04-28"
 ---
 
+```{r opts, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE,
+                      tidy.opts = list(width.cutoff = 60), tidy=TRUE
+)
+
+```
+
 ### 1. Set up our environment
 
 ```{r setup}
@@ -24,7 +32,7 @@ In this lab we will focus on the DENV and CHIKV data, which have already been cl
 ```{r read in data}
 
 # set my_path to be the working directory location of where the *seroanalytics_workshop* folder is stored on your computer
-my_path <- "/Users/soniahegde/Library/CloudStorage/OneDrive-JohnsHopkins/seroanalytics_workshop"
+my_path <- "/OneDrive-JohnsHopkins/seroanalytics_workshop"
 df <- read.csv(paste(my_path, "Data/Lab_6_data.csv", sep="/"))
 
 # lets take a look at our dataset

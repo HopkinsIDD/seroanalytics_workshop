@@ -2,7 +2,16 @@
 title: "Introduction to R and RStudio"
 output: pdf_document
 date: "2025-05-21"
+
 ---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE,
+                      tidy.opts = list(width.cutoff = 60), tidy=TRUE
+)
+
+```
 
 # Introduction
 
@@ -73,7 +82,9 @@ z
 We can also assign variables to have values that are not numeric, for example characters or strings.
 
 ```{r,message=F, warning=F}
+
 introduction<- "My name is John"
+
 introduction
 
 ```
@@ -93,14 +104,16 @@ full_name
 
 The variable names of `full name` or `full-name` etc., are not valid.
 
-If you start a variable name with a number or you do have spaces or a dash, you will need to enclose your variable names in this symbol \`\`\`. For example:
+If you start a variable name with a number or you do have spaces or a dash, you will need to enclose your variable names in this symbol \`\`. For example:
 
 ```{r, message=F, warning=F}
-`full name`<- "John Smith"
 
-`full-name`<- "John Smith"
+'full name'<- "John Smith"
 
-`full-name`
+'full-name'<- "John Smith"
+
+'full-name'
+
 ```
 
 We can also store vectors in R of numbers or characters:
@@ -113,6 +126,7 @@ vect_numeric
 
 vect_character<- c("a", "b", "c", "d", "e")
 vect_character
+
 ```
 
 Importantly, each element of the vector is separated by a comma. So if we were to make a character vector in the following way:
@@ -164,7 +178,7 @@ If `getwd()` is not showing the correct file path, then one way to set the direc
 ```{r,message=F, warning=F, results="hide", eval=F}
 
 #replace the my_path location below with the location of your seroanalytics_workshop folder
-my_path <- "/Users/soniahegde/Library/CloudStorage/OneDrive-JohnsHopkins/seroanalytics_workshop"
+my_path <- "/OneDrive-JohnsHopkins/seroanalytics_workshop"
 
 setwd(my_path)
 
@@ -188,7 +202,7 @@ Now, that we have the correct working directory, we can read in one dataset that
 
 #another way to read in this file is to use the my_path location of the working directory and paste it in front of the file name
 #this is generally the best way to read in data in Rmd files
-my_path <- "/Users/soniahegde/Library/CloudStorage/OneDrive-JohnsHopkins/seroanalytics_workshop"
+my_path <- "/OneDrive-JohnsHopkins/seroanalytics_workshop"
 
 meta_data <- read.csv(paste(my_path,"Data/Training demographics df.csv", sep="/"))
 

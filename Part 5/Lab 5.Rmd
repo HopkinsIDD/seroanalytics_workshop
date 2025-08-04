@@ -4,6 +4,13 @@ output: pdf_document
 date: "2025-05-22"
 ---
 
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE,
+                      tidy.opts = list(width.cutoff = 60), tidy=TRUE
+)
+
+```
 
 # Introduction
 The purpose of this document is to compute a threshold of serostatus when there is not an external threshold, like there was for measles in Lab 4. This document describes how to use control samples with known prior exposure status to a pathogen (i.e., positive or negative) to establish a threshold, then describes how to calculate test performance characteristics of this threshold (i.e., sensitivity and specificity). Upon completing this document, you will be able to: 
@@ -14,16 +21,16 @@ The purpose of this document is to compute a threshold of serostatus when there 
 
 # General housekeeping
 
-Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of Rstudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the `Data` folder within the `seroanalytics_workshop` folder. Alternatively, you can modify the code below as appropriate for your files to get to the `Data` folder in the `seroanalytics_workshop` folder. 
+Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of Rstudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the `seroanalytics_workshop` folder. Alternatively, you can modify the code below as appropriate for your files to get to the `seroanalytics_workshop` folder. 
 
-```{r Setup}
-
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
+```{r file_load}
 
 # set my_path to be the working directory location of where the *seroanalytics_workshop* folder is stored on your computer
-my_path <- "/Users/soniahegde/Library/CloudStorage/OneDrive-JohnsHopkins/seroanalytics_workshop"
+my_path <- "/OneDrive-JohnsHopkins/seroanalytics_workshop"
 
-source(paste(my_path, "Source/utils.R", sep="/"))
+# source the functions file from the directory using the my_path location
+# the functions file is saved in the Source/ folder within the working directory
+source(paste(my_path,"Source/utils.R", sep="/"))
 
 ```
 
@@ -163,9 +170,10 @@ Using code below, and the sample data (not control!) for PfAMA1, compute the ser
 ```{r exercise2}
 #Applying cutoff:
 
-#ifelse function, if first statement is true, then outcome is set to 1, and if first statemnet is false, then outcome is 0
-#since the first statement is a vector, then outcome will be a vector of 1's and 0's.
-seropositivity <- ifelse(sample_data$PfAMA1 > highestNeg_cutoff, 1, 0) #1 indicates seropositive, and 0 indicates seronegative
+#ifelse function, if first statement is true, then outcome is set to 1, and if first statement is false, then outcome is 0
+#since the first statement is a vector, then outcome will be a vector of 1's and 0's
+#1 indicates seropositive, and 0 indicates seronegative
+seropositivity <- ifelse(sample_data$PfAMA1 > highestNeg_cutoff, 1, 0) 
 
 #number of people seropositve and seronegative  
 cat("Table of number seronegative and seronegative", "\n")
@@ -176,14 +184,17 @@ cat("Table of percent seronegative and seronegative", "\n")
 round(prop.table(table(seropositivity,useNA="always")),3)*100
 
 # Set up to calculate the confidence interval
-x <- 531 #number seropositive. Get the number seropositive in your sample from the seropositive table above
+#x is the number seropositive and you can get the number seropositive in your sample from the seropositive table above
+x <- 531 
 
-n <- nrow(sample_data) #total number of samples in your data, note in these data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this cound.
+#n is the total number of samples in your data and note in the data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this round
+n <- nrow(sample_data) 
 
-conf <- 0.95 #confidence interval. 95% is a standard CI but you can adjust this if you want
+#conf is the confidence interval and a 95% is a standard CI but you can adjust this if you want
+conf <- 0.95 
   
-# Exact interval
-ci <- binom.exact(x, n, conf.level = conf) #epitools function
+# Estimate the exact interval using the epitools function
+ci <- binom.exact(x, n, conf.level = conf) 
 
 cat("CI lower", round(ci$lower,4)*100, "%, CI upper", round(ci$upper,4)*100, "%")
 
@@ -340,7 +351,7 @@ bic_df$G <- as.numeric(rownames(bic_df)) # G is the column for number of compone
 names(bic_df) <- c("BIC", "G") # Label column names
 
 # Step 3: Find best model based on max BIC value as derived from the mclust package
-# Note that this package calculates a transformed BIC value; typically a model of best fit would have the lowest BIC value
+# Note that this package calculates a transformed BIC value; typically a model of best fit would have the lowest BIC value (see paper: https://pmc.ncbi.nlm.nih.gov/articles/PMC5096736/)
 plot(bic_values)
 best_index <- which.max(bic_df$BIC) 
 
@@ -361,11 +372,14 @@ component_means <- fmm_model$parameters$mean
 seropositive_component <- which.max(component_means)
 
 # Step 4: Get the predicted probabilities for each sample
-probabilities <- fmm_model$z  #For each sample, this is the probability of the component being in the first component or second component
-seropositive_probs <- probabilities[, seropositive_component] #this pulls out just the probability of each sample being seropositive
+#For each sample, fmm_model$z is the probability of the component being in the first component or second component
+probabilities <- fmm_model$z  
+#Below pulls out just the probability of each sample being seropositive
+seropositive_probs <- probabilities[, seropositive_component] 
 
 # Step 5: Estimate seroprevalence
-estimated_seroprevalence <- mean(seropositive_probs) #the mean of all the probabilities will be equal to the overall population seroprevalence
+#Note that the mean of all the probabilities will be equal to the overall population seroprevalence
+estimated_seroprevalence <- mean(seropositive_probs) 
 
 # Step 6: Report as percentage
 cat("Estimated seroprevalence:", round(estimated_seroprevalence * 100, 1), "%\n")

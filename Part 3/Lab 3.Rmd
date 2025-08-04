@@ -4,6 +4,14 @@ output: pdf_document
 date: "2025-05-22"
 ---
 
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE,
+                      tidy.opts = list(width.cutoff = 60), tidy=TRUE
+)
+
+```
+
 # Introduction
 
 The purpose of this document is to provide an introduction to pre-processing your serological data. In general, pre-processing can be thought of as a series of steps that transform raw data (data directly from the scanner or imager in the lab) into data that can be used to do analysis and make inferences. After working through this lab exercise you should be able to:
@@ -17,17 +25,16 @@ The purpose of this document is to provide an introduction to pre-processing you
 
 # Review: General Housekeeping
 
-Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of RStudio, and choosing "Set Working Directory" --\> "Choose Directory" and using your file browser to navigate to the `Data` folder within the `seroanalytics_workshop` folder. Alternatively, you can modify the code below as appropriate for your files to get to the `Data` folder in the `seroanalytics_workshop` folder.
+Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of RStudio, and choosing "Set Working Directory" --\> "Choose Directory" and using your file browser to navigate to the `seroanalytics_workshop` folder. Alternatively, you can modify the code below as appropriate for your files to get to the `seroanalytics_workshop` folder.
 
-```{r Setup}
-
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
-getwd()
+```{r file_load}
 
 # set my_path to be the working directory location of where the *seroanalytics_workshop* folder is stored on your computer
-my_path <- "/Users/soniahegde/Library/CloudStorage/OneDrive-JohnsHopkins/seroanalytics_workshop"
-source(paste(my_path, "Source/utils.R", sep="/"))
+my_path <- "/OneDrive-JohnsHopkins/seroanalytics_workshop"
 
+# source the functions file from the directory using the my_path location
+# the functions file is saved in the Source/ folder within the working directory
+source(paste(my_path, "Source/utils.R", sep="/"))
 
 ```
 

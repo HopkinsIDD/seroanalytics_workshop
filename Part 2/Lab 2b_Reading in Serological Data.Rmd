@@ -4,6 +4,14 @@ output: pdf_document
 date: "2025-05-22"
 ---
 
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE,
+                      tidy.opts = list(width.cutoff = 60), tidy=TRUE
+)
+
+```
+
 # Introduction
 
 The purpose of this document is to read raw serological data from an
@@ -20,19 +28,17 @@ data. Upon completing this lab, you should be able to:
 Before we start, let's navigate to the appropriate working directory.
 You can accomplish this by navigating to the "Session" tab of Rstudio,
 and choosing "Set Working Directory" --\> "Choose Directory" and using
-your file browser to navigate to the `Data` folder within the
-`seroanalytics_workshop` folder. Alternatively, you can modify the code
-below as appropriate for your files to get to the `Data` folder in the
-`seroanalytics_workshop` folder.
+your file browser to navigate to the `seroanalytics_workshop` folder. 
+Alternatively, you can modify the code below as appropriate for your files 
+to get to the `seroanalytics_workshop` folder.
 
-```{r Setup}
-
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
+```{r file_load}
 
 # set my_path to be the working directory location of where the *seroanalytics_workshop* folder is stored on your computer
-my_path <- "/Users/soniahegde/Library/CloudStorage/OneDrive-JohnsHopkins/seroanalytics_workshop"
+my_path <- "/OneDrive-JohnsHopkins/seroanalytics_workshop"
 
 # source the functions file from the directory using the my_path location
+# the functions file is saved in the Source/ folder within the working directory
 source(paste(my_path,"Source/utils.R", sep="/"))
 
 

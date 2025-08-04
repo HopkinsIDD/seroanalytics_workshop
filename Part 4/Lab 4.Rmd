@@ -4,6 +4,13 @@ output: pdf_document
 date: "2025-05-22"
 ---
 
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE,
+                      tidy.opts = list(width.cutoff = 60), tidy=TRUE
+)
+
+```
 
 # Introduction
 The purpose of this document is to show how specific samples are determined to seropositive or seronegative using external information about a particular pathogen and antigen (e.g., an internationally recognized threshold of protective immunity). This document then describes how to aggregate serostatus information about each sample to calculate a population-level seroprevalence. Upon completing this lab you should be able to:  
@@ -15,16 +22,17 @@ The purpose of this document is to show how specific samples are determined to s
 
 # General housekeeping
 
-Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of RStudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the `Data` folder within the `seroanalytics_workshop` folder. Alternatively, you can modify the code below as appropriate for your files to get to the `Data` folder in the `seroanalytics_workshop` folder. 
+Before we start, let's navigate to the appropriate working directory. You can accomplish this by navigating to the "Session" tab of RStudio, and choosing "Set Working Directory" --> "Choose Directory" and using your file browser to navigate to the  `seroanalytics_workshop` folder. Alternatively, you can modify the code below as appropriate for your files to get to the `seroanalytics_workshop` folder. 
 
-```{r Setup}
-
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message=FALSE)
+```{r file_load}
 
 # set my_path to be the working directory location of where the *seroanalytics_workshop* folder is stored on your computer
-my_path <- "/Users/soniahegde/Library/CloudStorage/OneDrive-JohnsHopkins/seroanalytics_workshop"
+my_path <- "/OneDrive-JohnsHopkins/seroanalytics_workshop"
 
-source(paste(my_path, "Source/utils.R", sep="/"))
+# source the functions file from the directory using the my_path location
+# the functions file is saved in the Source/ folder within the working directory
+source(paste(my_path,"Source/utils.R", sep="/"))
+
 
 ```
 
@@ -160,7 +168,8 @@ standard_data <- read.csv(paste(my_path, "Data/simulated_standard_curve_training
 ## Which samples on the plates are standards?
 std_one_plate <- standard_data[which(standard_data$Plate==1),]
 std_all_plates <- data.frame(Sample = std_one_plate$Sample, 
-                                 Dilution = c(c(1/100, 1/200, 1/400, 1/800, 1/1600, 1/3200, 1/6400, 1/12800), std_one_plate$dilution_iu_ml[9:26]),
+                                 Dilution = c(c(1/100, 1/200, 1/400, 1/800, 1/1600, 1/3200, 1/6400, 1/12800),
+                                              std_one_plate$dilution_iu_ml[9:26]),
                                  Location = c(c("65(1,A9)", "66(1,B9)", "67(1,C9)", "68(1,D9)", "69(1,E9)", "70(1,F9)", "71(1,G9)", "72(1,H9)"), c("73(1,A10)","74(1,B10)","75(1,C10)","76(1,D10)","77(1,E10)","78(1,F10)","79(1,G10)","80(1,H10)"), c("81(1,A11)","82(1,B11)","83(1,C11)","84(1,D11)","85(1,E11)","86(1,F11)","87(1,G11)","88(1,H11)","89(1,A12)","90(1,B12)")),
                                  Replicate = rep(1,nrow(std_one_plate)))
 
@@ -250,13 +259,33 @@ plate_4_bg_WMEV <- plate_4_bg[which(plate_4_bg$Antigen=="WMEV"),]
 ## Standardize (i.e., convert sample MFIs to IU/mL's)
 ## Note that the plate_df_norm input should only include the serosurvey samples and the relevant standard curve (here, measles)
 
-plate_1_standard<- get_concentration_FlexFit(plate_df_norm=plate_1_bg_WMEV[which(plate_1_bg_WMEV$Sample_Type=="TestSample" | plate_1_bg_WMEV$Sample %in% std_wmev_plate1$Sample[1:8]),], std_curve_values = std_all_plates[17:26,], input="MFI")
+plate_1_standard<- get_concentration_FlexFit(
+  plate_df_norm=plate_1_bg_WMEV[which(
+  plate_1_bg_WMEV$Sample_Type=="TestSample" | plate_1_bg_WMEV$Sample %in% std_wmev_plate1$Sample[1:8]),], 
+  std_curve_values = std_all_plates[17:26,], input="MFI")
 
-plate_2_standard<- get_concentration_FlexFit(plate_df_norm=plate_2_bg_WMEV[which(plate_2_bg_WMEV$Sample_Type=="TestSample" | plate_2_bg_WMEV$Sample %in% std_wmev_plate2$Sample[1:8]),], std_curve_values = std_all_plates[17:26,], input="MFI")
 
-plate_3_standard<- get_concentration_FlexFit(plate_df_norm=plate_3_bg_WMEV[which(plate_3_bg_WMEV$Sample_Type=="TestSample" | plate_3_bg_WMEV$Sample %in% std_wmev_plate3$Sample[1:8]),], std_curve_values = std_all_plates[17:26,], input="MFI")
 
-plate_4_standard<- get_concentration_FlexFit(plate_df_norm=plate_4_bg_WMEV[which(plate_4_bg_WMEV$Sample_Type=="TestSample" | plate_4_bg_WMEV$Sample %in% std_wmev_plate4$Sample[1:8]),], std_curve_values = std_all_plates[17:26,], input="MFI")
+plate_2_standard<- get_concentration_FlexFit(
+  plate_df_norm=plate_2_bg_WMEV[which(
+  plate_2_bg_WMEV$Sample_Type=="TestSample" | plate_2_bg_WMEV$Sample %in% std_wmev_plate2$Sample[1:8]),],
+  std_curve_values = std_all_plates[17:26,], input="MFI")
+
+
+
+plate_3_standard<- get_concentration_FlexFit(
+  plate_df_norm=plate_3_bg_WMEV[which(
+  plate_3_bg_WMEV$Sample_Type=="TestSample" | plate_3_bg_WMEV$Sample %in% std_wmev_plate3$Sample[1:8]),],
+  std_curve_values = std_all_plates[17:26,], input="MFI")
+
+
+
+plate_4_standard<- get_concentration_FlexFit(
+  plate_df_norm=plate_4_bg_WMEV[which(
+  plate_4_bg_WMEV$Sample_Type=="TestSample" | plate_4_bg_WMEV$Sample %in% std_wmev_plate4$Sample[1:8]),],
+  std_curve_values = std_all_plates[17:26,], input="MFI")
+
+
 
 ## Combine data on test samples only
 data_final <- rbind(plate_1_standard[which(plate_1_standard$Sample_Type=="TestSample"),],
@@ -270,8 +299,8 @@ data_final$meas_IU_mL <- exp(data_final$Log_Conc_bg)
 ## Plot the 4 standard curves and the samples and the cutoff
 ## For plotting, drop the 2 lowest standards that have negative MFI_BG
 ggplot(std_wmev_plate1to4[which(std_wmev_plate1to4$dilution_iu_ml>23.4),]) +
-    geom_point(aes(x=dilution_iu_ml, y=WMEV, group=as.factor(Plate), colour=as.factor(Plate))) +
-    geom_line(aes(x=dilution_iu_ml, y=WMEV, group=as.factor(Plate), colour=as.factor(Plate))) +
+  geom_point(aes(x=dilution_iu_ml, y=WMEV, group=as.factor(Plate), colour=as.factor(Plate))) +
+  geom_line(aes(x=dilution_iu_ml, y=WMEV, group=as.factor(Plate), colour=as.factor(Plate))) +
   scale_x_log10() +
   scale_y_log10() +
   xlab("IU/mL, WMEV") +
@@ -310,14 +339,20 @@ c. Calculate the confidence interval for this seroprevalence
 ```{r seroprevalence_confidence_interval}
 
 # Set up to calculate the confidence interval
-x <- 168 #number seropositive. Get the number seropositive in your sample from the seropositive table above
 
-n <- nrow(data_final) #total number of samples in your data, note in these data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this count.
+#this is the number seropositive
+#you get the number seropositive in your sample from the seropositive table above
+x <- 168 
 
-conf <- 0.95 #confidence interval. 95% is a standard CI but you can adjust this if you want
+#this is the total number of samples in your data
+#note in these data we saw above there were no NA values, but if you do have NA values be sure to exclude them from this count
+n <- nrow(data_final) 
 
-# Exact interval
-ci <- binom.exact(x, n, conf.level = conf) #epitools function
+#this is the confidence interval and 95% is a standard CI but you can adjust this if you want
+conf <- 0.95 
+
+#this uses the exact interval and an epitools function
+ci <- binom.exact(x, n, conf.level = conf)
 
 cat("CI lower", round(ci$lower,4)*100, "%, CI upper", round(ci$upper,4)*100, "%")
 
